@@ -1,0 +1,29 @@
+name: Validate configs
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  validate-docker-compose:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Validate portainer compose
+        run: docker compose -f docker/portainer/docker-compose.yml config
+
+      - name: Validate monitoring compose
+        run: docker compose -f docker/monitoring/docker-compose.yml config
+
+      - name: Validate prometheus config
+        run: |
+          docker run --rm \
+            -v ${{ github.workspace }}/docker/monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro \
+            prom/prometheus:latest \
+            --config.file=/etc/prometheus/prometheus.yml \
+            --check-config
