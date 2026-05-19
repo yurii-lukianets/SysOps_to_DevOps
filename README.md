@@ -12,5 +12,12 @@ Personal DevOps learning path built from scratch.
 
 ## Progress
 - [x] Step 1: Windows workstation setup
-- [x] Step 2: GitHub repository (yurii-lukianets/SysOps_to_DevOps)
-- [ ] Step 3: Docker on Ubuntu server
+- [x] Step 2: GitHub repository
+- [x] Step 3: Docker infrastructure on Ubuntu 22.04
+  - Portainer CE (container management)
+  - Server: Intel Core2 Quad 2.4GHz, 4GB RAM, 98GB disk
+
+## Infrastructure
+| Service    | Host                | Port |
+|------------|---------------------|------|
+| Portainer  | 192.168.100.203     | 9000 |
