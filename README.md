@@ -18,6 +18,9 @@ Personal DevOps learning path built from scratch.
   - Server: Intel Core2 Quad 2.4GHz, 4GB RAM, 98GB disk
 
 ## Infrastructure
-| Service    | Host                | Port |
-|------------|---------------------|------|
-| Portainer  | 192.168.100.203     | 9000 |
+| Service        | Host            | Port | Notes                    |
+|----------------|-----------------|------|--------------------------|
+| Portainer      | 192.168.100.203 | 9000 | Docker management UI     |
+| Prometheus     | 192.168.100.203 | 9091 | Metrics collection       |
+| Grafana        | 192.168.100.203 | 3000 | Dashboards (ID 1860)     |
+| Node Exporter  | 192.168.100.203 | 9100 | Host metrics             |
