@@ -1,0 +1,41 @@
+name: Deploy to server
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'docker/**'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Copy monitoring configs
+        run: |
+          scp -i ~/.ssh/deploy_key -P ${{ secrets.SSH_PORT }} \
+            docker/monitoring/docker-compose.yml \
+            docker/monitoring/prometheus.yml \
+            ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/home/tst/devops-lab/monitoring/
+
+      - name: Copy portainer config
+        run: |
+          scp -i ~/.ssh/deploy_key -P ${{ secrets.SSH_PORT }} \
+            docker/portainer/docker-compose.yml \
+            ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/home/tst/devops-lab/portainer/
+
+      - name: Restart monitoring stack
+        run: |
+          ssh -i ~/.ssh/deploy_key -p ${{ secrets.SSH_PORT }} \
+            ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} \
+            "cd /home/tst/devops-lab/monitoring && docker compose pull && docker compose up -d"
