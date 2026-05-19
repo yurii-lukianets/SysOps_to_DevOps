@@ -12,5 +12,5 @@ Personal DevOps learning path built from scratch.
 
 ## Progress
 - [x] Step 1: Windows workstation setup
-- [ ] Step 2: GitHub repository
+- [x] Step 2: GitHub repository (yurii-lukianets/SysOps_to_DevOps)
 - [ ] Step 3: Docker on Ubuntu server
