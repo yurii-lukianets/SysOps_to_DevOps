@@ -24,3 +24,7 @@ Personal DevOps learning path built from scratch.
 | Prometheus     | 192.168.100.203 | 9091 | Metrics collection       |
 | Grafana        | 192.168.100.203 | 3000 | Dashboards (ID 1860)     |
 | Node Exporter  | 192.168.100.203 | 9100 | Host metrics             |
+- [x] Step 5: CI/CD pipeline
+  - GitHub Actions: validate.yml + deploy.yml
+  - Self-hosted runner on Ubuntu server (devops-lab)
+  - Auto-deploy on push to docker/**
