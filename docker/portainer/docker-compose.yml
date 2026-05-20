@@ -1,3 +1,4 @@
+# Portainer CE - Docker management UI
 services:
   portainer:
     image: portainer/portainer-ce:latest
