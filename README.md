@@ -44,3 +44,8 @@ Personal DevOps learning path built from scratch.
   - Nginx deployment via kubectl manifest
   - Remote kubectl access from Windows
   - iptables rule for port 6443
+- [x] Step 9: ArgoCD GitOps
+  - ArgoCD v3.4.2 in K3s (namespace: argocd)
+  - App: nginx-gitops → k8s/nginx/
+  - Auto-sync + Self-heal enabled
+  - Tested: git push → automatic scale 1→2 replicas
