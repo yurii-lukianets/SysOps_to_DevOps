@@ -1,23 +1,14 @@
-- name: Check if Docker is installed
+- name: Check Docker is installed
   command: docker --version
-  register: docker_check
-  ignore_errors: true
+  register: docker_version
   changed_when: false
 
-- name: Install Docker if not present
-  shell: curl -fsSL https://get.docker.com | sh
-  when: docker_check.rc != 0
-
-- name: Ensure tst user is in docker group
-  user:
-    name: "{{ ansible_user }}"
-    groups: docker
-    append: yes
+- name: Check Docker service is running
+  command: systemctl is-active docker
+  register: docker_service
+  changed_when: false
   become: true
 
-- name: Ensure Docker service is running
-  systemd:
-    name: docker
-    state: started
-    enabled: yes
-  become: true
+- name: Show Docker status
+  debug:
+    msg: "Docker: {{ docker_version.stdout }} | Service: {{ docker_service.stdout }}"
