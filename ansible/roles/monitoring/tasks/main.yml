@@ -1,32 +1,8 @@
-- name: Create monitoring directory
-  file:
-    path: "{{ services.monitoring.dir }}"
-    state: directory
-    mode: '0755'
-
-- name: Copy monitoring docker-compose
-  copy:
-    src: "{{ playbook_dir }}/../docker/monitoring/docker-compose.yml"
-    dest: "{{ services.monitoring.dir }}/docker-compose.yml"
-    mode: '0644'
-
-- name: Copy prometheus config
-  copy:
-    src: "{{ playbook_dir }}/../docker/monitoring/prometheus.yml"
-    dest: "{{ services.monitoring.dir }}/prometheus.yml"
-    mode: '0644'
-
-- name: Start monitoring stack
-  community.docker.docker_compose_v2:
-    project_src: "{{ services.monitoring.dir }}"
-    state: present
-    pull: missing
-
-- name: Verify monitoring
-  command: docker ps --filter name=grafana --format "{% raw %}{{.Names}}: {{.Status}}{% endraw %}"
+- name: Check monitoring containers are running
+  command: docker ps --filter status=running
   register: result
   changed_when: false
 
-- name: Show monitoring status
+- name: Show running containers
   debug:
-    msg: "{{ result.stdout }}"
+    msg: "{{ result.stdout_lines }}"

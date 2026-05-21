@@ -1,26 +1,8 @@
-- name: Create portainer directory
-  file:
-    path: "{{ services.portainer.dir }}"
-    state: directory
-    mode: '0755'
-
-- name: Copy portainer docker-compose
-  copy:
-    src: "{{ playbook_dir }}/../docker/portainer/docker-compose.yml"
-    dest: "{{ services.portainer.dir }}/docker-compose.yml"
-    mode: '0644'
-
-- name: Start portainer stack
-  community.docker.docker_compose_v2:
-    project_src: "{{ services.portainer.dir }}"
-    state: present
-    pull: missing
-
-- name: Verify portainer
-  command: docker ps --filter name=portainer --format "{% raw %}{{.Names}}: {{.Status}}{% endraw %}"
+- name: Check portainer is running
+  command: docker ps --filter name=portainer --filter status=running
   register: result
   changed_when: false
 
 - name: Show portainer status
   debug:
-    msg: "Portainer: {{ portainer_status.stdout }}"
+    msg: "{{ result.stdout_lines }}"
