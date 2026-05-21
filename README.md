@@ -28,3 +28,7 @@ Personal DevOps learning path built from scratch.
   - GitHub Actions: validate.yml + deploy.yml
   - Self-hosted runner on Ubuntu server (devops-lab)
   - Auto-deploy on push to docker/**
+- [x] Step 6: Infrastructure as Code (Ansible)
+  - Roles: docker, portainer, monitoring
+  - Idempotent playbook: ansible-playbook ansible/site.yml
+  - Local connection (ansible_connection=local)
