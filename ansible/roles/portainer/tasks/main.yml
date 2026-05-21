@@ -16,9 +16,9 @@
     state: present
     pull: missing
 
-- name: Verify portainer is running
-  command: docker ps --filter name=portainer --format "{{ '{{' }}.Status{{ '}}' }}"
-  register: portainer_status
+- name: Verify portainer
+  command: docker ps --filter name=portainer --format "{% raw %}{{.Names}}: {{.Status}}{% endraw %}"
+  register: result
   changed_when: false
 
 - name: Show portainer status

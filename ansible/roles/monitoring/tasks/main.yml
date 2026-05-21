@@ -22,11 +22,11 @@
     state: present
     pull: missing
 
-- name: Verify monitoring containers
-  command: docker ps --filter name=grafana --filter name=prometheus --filter name=node-exporter --format "{{ '{{' }}.Names{{ '}}' }}: {{ '{{' }}.Status{{ '}}' }}"
-  register: monitoring_status
+- name: Verify monitoring
+  command: docker ps --filter name=grafana --format "{% raw %}{{.Names}}: {{.Status}}{% endraw %}"
+  register: result
   changed_when: false
 
 - name: Show monitoring status
   debug:
-    msg: "{{ monitoring_status.stdout_lines }}"
+    msg: "{{ result.stdout }}"
