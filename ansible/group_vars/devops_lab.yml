@@ -1,0 +1,10 @@
+project_base_dir: /home/tst/devops-lab
+
+services:
+  portainer:
+    dir: "{{ project_base_dir }}/portainer"
+  monitoring:
+    dir: "{{ project_base_dir }}/monitoring"
+
+grafana_admin_password: devops123
+prometheus_port: 9091
