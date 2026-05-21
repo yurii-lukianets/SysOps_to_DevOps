@@ -32,3 +32,7 @@ Personal DevOps learning path built from scratch.
   - Roles: docker, portainer, monitoring
   - Idempotent playbook: ansible-playbook ansible/site.yml
   - Local connection (ansible_connection=local)
+- [x] Step 7: Terraform IaC
+  - Docker provider (kreuzwerker/docker v3.9)
+  - Remote state: MinIO S3-compatible backend
+  - Commands: init, plan, apply, destroy
