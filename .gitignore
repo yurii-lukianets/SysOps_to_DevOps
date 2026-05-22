@@ -1,1 +1,4 @@
-k8s/kubeconfig-lab
+__pycache__/
+*.pyc
+__pycache__/
+*.pyc
