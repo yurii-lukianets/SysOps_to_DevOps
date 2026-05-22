@@ -23,6 +23,11 @@ spec:
         env:
         - name: LLAMA_SERVER_URL
           value: "http://192.168.100.15:8080"
+        - name: API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: llm-api-secret
+              key: api-key
         resources:
           requests:
             memory: "128Mi"

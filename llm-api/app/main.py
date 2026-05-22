@@ -1,12 +1,13 @@
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Request, Security
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.security.api_key import APIKeyHeader
 from pydantic import BaseModel
 import httpx
 import os
 
 app = FastAPI(
     title="Self-hosted LLM API",
-    description="Proxy to local Qwen3 via llama.cpp",
+    description="Qwen3-35B via llama.cpp on RTX 3050",
     version="1.0.0"
 )
 
@@ -18,6 +19,14 @@ app.add_middleware(
 )
 
 LLAMA_URL = os.getenv("LLAMA_SERVER_URL", "http://192.168.100.15:8080")
+API_KEY   = os.getenv("API_KEY", "")
+
+api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
+
+def verify_key(key: str = Security(api_key_header)):
+    if API_KEY and key != API_KEY:
+        raise HTTPException(status_code=403, detail="Invalid API Key")
+    return key
 
 class ChatRequest(BaseModel):
     message: str
@@ -26,9 +35,9 @@ class ChatRequest(BaseModel):
 
 @app.get("/health")
 async def health():
-    return {"status": "ok", "llm_backend": LLAMA_URL}
+    return {"status": "ok", "llm_backend": LLAMA_URL, "model": "Qwen3-35B"}
 
-@app.get("/v1/models")
+@app.get("/v1/models", dependencies=[Security(verify_key)])
 async def models():
     async with httpx.AsyncClient(timeout=10.0) as client:
         try:
@@ -37,7 +46,7 @@ async def models():
         except Exception as e:
             raise HTTPException(status_code=503, detail=str(e))
 
-@app.post("/v1/chat")
+@app.post("/v1/chat", dependencies=[Security(verify_key)])
 async def chat(req: ChatRequest):
     payload = {
         "model": "qwen3",
@@ -56,9 +65,8 @@ async def chat(req: ChatRequest):
         except Exception as e:
             raise HTTPException(status_code=503, detail=str(e))
 
-@app.post("/v1/chat/completions")
+@app.post("/v1/chat/completions", dependencies=[Security(verify_key)])
 async def chat_completions(request: Request):
-    """OpenAI-compatible passthrough"""
     body = await request.json()
     async with httpx.AsyncClient(timeout=120.0) as client:
         try:
