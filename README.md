@@ -11,7 +11,7 @@ Personal DevOps learning path built from scratch — from Windows workstation to
 
 > Both services run on self-hosted K3s cluster with automated TLS via Let's Encrypt
 
-## Stack
+## Stack 
 
 | Category | Technology |
 |----------|------------|
