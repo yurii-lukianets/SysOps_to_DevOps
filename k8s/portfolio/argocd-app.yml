@@ -1,0 +1,18 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: portfolio
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/yurii-lukianets/SysOps_to_DevOps
+    targetRevision: main
+    path: k8s/portfolio
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: default
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true

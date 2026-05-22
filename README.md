@@ -92,11 +92,11 @@ Personal DevOps learning path built from scratch — from Windows workstation to
 ## Infrastructure Map
 
 ```
-Windows (192.168.100.15)
+Windows (windows-host (llama-server))
   └── llama-server (Qwen3-35B, RTX 3050, port 8080)
   └── VS Code + Continue.dev → local LLM autocomplete
 
-Ubuntu 22.04 (192.168.100.203)
+Ubuntu 22.04 (ubuntu-server (Docker + K3s))
   ├── Docker containers
   │   ├── Portainer     :9000
   │   ├── Prometheus    :9091
@@ -108,11 +108,11 @@ Ubuntu 22.04 (192.168.100.203)
       ├── cert-manager (TLS)
       ├── ArgoCD (GitOps)
       ├── portfolio pod → ai-devops.pp.ua
-      └── llm-api pod  → llm.ai-devops.pp.ua → 192.168.100.15:8080
+      └── llm-api pod  → llm.ai-devops.pp.ua → windows-host(llama-server):8080
 
-Router (176.36.254.118)
-  ├── :80  → 192.168.100.203 (HTTP / ACME challenge)
-  └── :443 → 192.168.100.203 (HTTPS)
+Router (host site) temp ip
+  ├── :80  → ubuntu-server (Docker + K3s) (HTTP / ACME challenge)
+  └── :443 → ubuntu-server (Docker + K3s) (HTTPS)
 ```
 
 ## Repository Structure
