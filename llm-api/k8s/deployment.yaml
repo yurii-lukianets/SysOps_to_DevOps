@@ -13,6 +13,8 @@ spec:
       labels:
         app: llm-api
     spec:
+      imagePullSecrets:
+      - name: ghcr-secret
       containers:
       - name: llm-api
         image: ghcr.io/yurii-lukianets/llm-api:latest
