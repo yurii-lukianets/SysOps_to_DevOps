@@ -9,3 +9,17 @@ spec:
   ports:
   - port: 80
     targetPort: 8000
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: llm-api-metrics
+  namespace: default
+spec:
+  selector:
+    app: llm-api
+  type: NodePort
+  ports:
+  - port: 8000
+    targetPort: 8000
+    nodePort: 30800

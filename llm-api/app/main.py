@@ -7,10 +7,8 @@ from pydantic import BaseModel
 import httpx, os, time
 
 app = FastAPI(title="Self-hosted LLM API", description="Qwen3-35B via llama.cpp on RTX 3050", version="1.0.0")
-
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
-
-Instrumentator().instrument(app).expose(app)
+Instrumentator().instrument(app).expose(app, include_in_schema=False, should_gzip=False)
 
 LLAMA_URL = os.getenv("LLAMA_SERVER_URL", "http://192.168.100.15:8080")
 API_KEY = os.getenv("API_KEY", "")
@@ -18,7 +16,7 @@ api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
 
 llm_requests_total = Counter("llm_requests_total", "Total LLM requests")
 llm_tokens_generated = Counter("llm_tokens_generated_total", "Total tokens generated")
-llm_request_duration = Histogram("llm_request_duration_seconds", "LLM request duration")
+llm_request_duration = Histogram("llm_request_duration_seconds", "LLM request duration", buckets=[1,2,5,10,30,60,120])
 llm_tokens_per_second = Gauge("llm_tokens_per_second", "Current tokens per second")
 
 def verify_key(key: str = Security(api_key_header)):
