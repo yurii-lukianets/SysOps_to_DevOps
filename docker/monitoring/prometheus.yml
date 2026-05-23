@@ -15,3 +15,9 @@ scrape_configs:
     static_configs:
       - targets: ['192.168.100.15:8080']
     metrics_path: /metrics
+
+  - job_name: llm-api
+    static_configs:
+      - targets: ['192.168.100.203:80']
+    metrics_path: /metrics
+    scheme: http

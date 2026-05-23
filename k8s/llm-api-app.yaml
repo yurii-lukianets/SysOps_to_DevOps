@@ -1,0 +1,18 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: llm-api
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/yurii-lukianets/SysOps_to_DevOps
+    targetRevision: HEAD
+    path: llm-api/k8s
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: default
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
