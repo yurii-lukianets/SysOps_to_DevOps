@@ -1,480 +1,487 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Yurii Lukianets — DevOps Engineer</title>
-  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
-  <style>
-    :root {
-      --bg: #0a0a0a;
-      --surface: #111111;
-      --border: #222222;
-      --accent: #e8ff00;
-      --text: #f0f0f0;
-      --muted: #555555;
-      --muted2: #888888;
-      --mono: 'IBM Plex Mono', monospace;
-      --sans: 'IBM Plex Sans', sans-serif;
-    }
-
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-
-    body {
-      background: var(--bg);
-      color: var(--text);
-      font-family: var(--sans);
-      font-weight: 300;
-      min-height: 100vh;
-      line-height: 1.6;
-    }
-
-    .wrap { max-width: 960px; margin: 0 auto; padding: 0 2rem; }
-
-    /* Top bar */
-    .topbar {
-      border-bottom: 1px solid var(--border);
-      padding: 1rem 0;
-    }
-    .topbar-inner {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      font-family: var(--mono);
-      font-size: 0.7rem;
-      color: var(--muted);
-      letter-spacing: 0.1em;
-    }
-    .topbar-right { display: flex; align-items: center; gap: 1.5rem; }
-    .live-dot {
-      display: flex; align-items: center; gap: 0.4rem;
-      color: #4ade80;
-    }
-    .live-dot::before {
-      content: '';
-      width: 6px; height: 6px;
-      background: #4ade80;
-      border-radius: 50%;
-      animation: blink 2s infinite;
-    }
-    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
-
-    /* Header */
-    header {
-      padding: 5rem 0 4rem;
-      border-bottom: 1px solid var(--border);
-    }
-
-    .name {
-      font-family: var(--sans);
-      font-size: clamp(2.8rem, 6vw, 4.5rem);
-      font-weight: 600;
-      letter-spacing: -0.04em;
-      line-height: 1;
-      margin-bottom: 1rem;
-    }
-
-    .role {
-      font-family: var(--mono);
-      font-size: 0.8rem;
-      color: var(--muted2);
-      letter-spacing: 0.08em;
-      margin-bottom: 2.5rem;
-    }
-
-    .header-meta {
-      display: flex;
-      gap: 2rem;
-      flex-wrap: wrap;
-      border-top: 1px solid var(--border);
-      padding-top: 1.5rem;
-    }
-    .meta-item { display: flex; flex-direction: column; gap: 0.2rem; }
-    .meta-label { font-family: var(--mono); font-size: 0.65rem; color: var(--muted); letter-spacing: 0.1em; text-transform: uppercase; }
-    .meta-val { font-family: var(--mono); font-size: 0.8rem; color: var(--text); }
-    .meta-val a { color: var(--text); text-decoration: none; }
-    .meta-val a:hover { color: var(--accent); }
-
-    /* Sections */
-    section { padding: 3.5rem 0; border-bottom: 1px solid var(--border); }
-
-    .section-head {
-      display: flex;
-      align-items: baseline;
-      gap: 1.5rem;
-      margin-bottom: 2rem;
-    }
-    .section-num {
-      font-family: var(--mono);
-      font-size: 0.65rem;
-      color: var(--muted);
-      letter-spacing: 0.1em;
-      min-width: 24px;
-    }
-    .section-title {
-      font-size: 0.7rem;
-      font-family: var(--mono);
-      letter-spacing: 0.15em;
-      text-transform: uppercase;
-      color: var(--muted2);
-    }
-
-    /* Stack table */
-    .stack-table { width: 100%; border-collapse: collapse; }
-    .stack-table tr { border-bottom: 1px solid var(--border); }
-    .stack-table tr:last-child { border-bottom: none; }
-    .stack-table tr:hover td { color: var(--text); }
-    .stack-table td {
-      padding: 1rem 0;
-      font-size: 0.85rem;
-      color: var(--muted2);
-      transition: color 0.15s;
-      vertical-align: top;
-    }
-    .stack-table td:first-child {
-      font-family: var(--mono);
-      font-size: 0.75rem;
-      color: var(--muted);
-      width: 180px;
-      padding-right: 2rem;
-      letter-spacing: 0.05em;
-    }
-    .stack-table td:nth-child(2) {
-      color: var(--text);
-      font-weight: 400;
-      width: 220px;
-    }
-    .stack-table td:last-child { color: var(--muted2); }
-
-    .tags { display: flex; flex-wrap: wrap; gap: 0.4rem; }
-    .tag {
-      font-family: var(--mono);
-      font-size: 0.65rem;
-      padding: 0.2rem 0.6rem;
-      border: 1px solid var(--border);
-      color: var(--muted2);
-      letter-spacing: 0.05em;
-    }
-    .tag.hi { border-color: var(--accent); color: var(--accent); }
-    .tag.ok { border-color: #333; color: #888; }
-
-    /* Metrics row */
-    .metrics-row {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      border: 1px solid var(--border);
-    }
-    .metric {
-      padding: 1.5rem;
-      border-right: 1px solid var(--border);
-    }
-    .metric:last-child { border-right: none; }
-    .metric-val {
-      font-family: var(--mono);
-      font-size: 2rem;
-      font-weight: 500;
-      color: var(--accent);
-      line-height: 1;
-      margin-bottom: 0.4rem;
-    }
-    .metric-label {
-      font-family: var(--mono);
-      font-size: 0.65rem;
-      color: var(--muted);
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-    }
-
-    /* Timeline */
-    .steps { display: flex; flex-direction: column; }
-    .step {
-      display: grid;
-      grid-template-columns: 48px 1fr;
-      border-bottom: 1px solid var(--border);
-    }
-    .step:last-child { border-bottom: none; }
-    .step-num {
-      font-family: var(--mono);
-      font-size: 0.65rem;
-      color: var(--muted);
-      padding: 1.2rem 0;
-      letter-spacing: 0.05em;
-    }
-    .step-body { padding: 1.2rem 0 1.2rem 1.5rem; border-left: 1px solid var(--border); }
-    .step-title {
-      font-size: 0.9rem;
-      font-weight: 500;
-      margin-bottom: 0.3rem;
-      display: flex;
-      align-items: center;
-      gap: 0.8rem;
-    }
-    .badge {
-      font-family: var(--mono);
-      font-size: 0.6rem;
-      padding: 0.1rem 0.5rem;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-    }
-    .badge.live { color: var(--accent); border: 1px solid var(--accent); }
-    .badge.done { color: var(--muted); border: 1px solid var(--border); }
-    .badge.active { color: #4ade80; border: 1px solid #4ade80; }
-    .step-desc { font-size: 0.8rem; color: var(--muted2); line-height: 1.6; }
-
-    /* Project */
-    .project {
-      border: 1px solid var(--border);
-      padding: 2rem;
-      display: grid;
-      grid-template-columns: 1fr auto;
-      gap: 2rem;
-      align-items: start;
-    }
-    .project-title { font-size: 1rem; font-weight: 500; margin-bottom: 0.5rem; }
-    .project-desc { font-size: 0.8rem; color: var(--muted2); line-height: 1.6; margin-bottom: 1rem; }
-    .project-link {
-      font-family: var(--mono);
-      font-size: 0.7rem;
-      color: var(--text);
-      text-decoration: none;
-      border: 1px solid var(--border);
-      padding: 0.6rem 1.2rem;
-      white-space: nowrap;
-      letter-spacing: 0.05em;
-      transition: all 0.15s;
-    }
-    .project-link:hover { border-color: var(--accent); color: var(--accent); }
-
-    /* Footer */
-    footer {
-      padding: 2rem 0;
-      display: flex;
-      justify-content: space-between;
-      flex-wrap: wrap;
-      gap: 0.5rem;
-      font-family: var(--mono);
-      font-size: 0.65rem;
-      color: var(--muted);
-      letter-spacing: 0.08em;
-    }
-
-    @media (max-width: 600px) {
-      .metrics-row { grid-template-columns: 1fr 1fr; }
-      .stack-table td:last-child { display: none; }
-      .project { grid-template-columns: 1fr; }
-      .step-body { padding-left: 1rem; }
-    }
-  </style>
-</head>
-<body>
-
-<div class="topbar">
-  <div class="wrap">
-    <div class="topbar-inner">
-      <span>yurii-lukianets / portfolio</span>
-      <div class="topbar-right">
-        <span class="live-dot">all systems operational</span>
-        <span>ai-devops.pp.ua</span>
-      </div>
-    </div>
-  </div>
-</div>
-
-<div class="wrap">
-
-  <header>
-    <div class="name">Yurii Lukianets</div>
-    <div class="role">SYSOPS → DEVOPS ENGINEER · LOCAL LLM INFRASTRUCTURE</div>
-    <div class="header-meta">
-      <div class="meta-item">
-        <span class="meta-label">Role</span>
-        <span class="meta-val">DevOps / Infrastructure Engineer</span>
-      </div>
-      <div class="meta-item">
-        <span class="meta-label">Focus</span>
-        <span class="meta-val">Kubernetes · GitOps · LLM Inference</span>
-      </div>
-      <div class="meta-item">
-        <span class="meta-label">GitHub</span>
-        <span class="meta-val"><a href="https://github.com/yurii-lukianets/SysOps_to_DevOps">SysOps_to_DevOps →</a></span>
-      </div>
-      <div class="meta-item">
-        <span class="meta-label">LLM API</span>
-        <span class="meta-val"><a href="https://llm.ai-devops.pp.ua/health">llm.ai-devops.pp.ua →</a></span>
-      </div>
-    </div>
-  </header>
-
-  <!-- Stack -->
-  <section>
-    <div class="section-head">
-      <span class="section-num">01</span>
-      <span class="section-title">Infrastructure Stack</span>
-    </div>
-    <table class="stack-table">
-      <tr>
-        <td>orchestration</td>
-        <td>K3s v1.35 · Kubernetes</td>
-        <td><div class="tags"><span class="tag hi">K3s</span><span class="tag ok">Traefik</span><span class="tag ok">Helm</span><span class="tag ok">CoreDNS</span></div></td>
-      </tr>
-      <tr>
-        <td>gitops / cd</td>
-        <td>ArgoCD v3.4.2</td>
-        <td><div class="tags"><span class="tag hi">ArgoCD</span><span class="tag ok">GitHub Actions</span><span class="tag ok">GHCR</span></div></td>
-      </tr>
-      <tr>
-        <td>iac</td>
-        <td>Terraform + Ansible</td>
-        <td><div class="tags"><span class="tag hi">Terraform</span><span class="tag ok">Ansible</span><span class="tag ok">MinIO S3</span></div></td>
-      </tr>
-      <tr>
-        <td>observability</td>
-        <td>Prometheus + Grafana</td>
-        <td><div class="tags"><span class="tag hi">Prometheus</span><span class="tag ok">Grafana</span><span class="tag ok">node-exporter</span></div></td>
-      </tr>
-      <tr>
-        <td>local llm</td>
-        <td>Qwen3-35B · llama.cpp</td>
-        <td><div class="tags"><span class="tag hi">CUDA</span><span class="tag ok">RTX 3050</span><span class="tag ok">MXFP4 MoE</span><span class="tag ok">OpenAI API</span></div></td>
-      </tr>
-      <tr>
-        <td>security</td>
-        <td>Cloudflare + CrowdSec</td>
-        <td><div class="tags"><span class="tag hi">WAF</span><span class="tag ok">iptables</span><span class="tag ok">CrowdSec</span><span class="tag ok">GeoIP</span></div></td>
-      </tr>
-      <tr>
-        <td>tls</td>
-        <td>cert-manager · Let's Encrypt</td>
-        <td><div class="tags"><span class="tag ok">TLS 1.3</span><span class="tag ok">auto-renewal</span></div></td>
-      </tr>
-    </table>
-  </section>
-
-  <!-- Metrics -->
-  <section>
-    <div class="section-head">
-      <span class="section-num">02</span>
-      <span class="section-title">LLM Performance · RTX 3050 · Qwen3-35B-A3B MXFP4</span>
-    </div>
-    <div class="metrics-row">
-      <div class="metric">
-        <div class="metric-val">34</div>
-        <div class="metric-label">tok/s generation</div>
-      </div>
-      <div class="metric">
-        <div class="metric-val">411</div>
-        <div class="metric-label">tok/s prefill</div>
-      </div>
-      <div class="metric">
-        <div class="metric-val">2.9s</div>
-        <div class="metric-label">avg latency</div>
-      </div>
-      <div class="metric">
-        <div class="metric-val">94%</div>
-        <div class="metric-label">VRAM usage</div>
-      </div>
-      <div class="metric">
-        <div class="metric-val">32K</div>
-        <div class="metric-label">context tokens</div>
-      </div>
-      <div class="metric">
-        <div class="metric-val">6/6</div>
-        <div class="metric-label">API tests pass</div>
-      </div>
-    </div>
-  </section>
-
-  <!-- Steps -->
-  <section>
-    <div class="section-head">
-      <span class="section-num">03</span>
-      <span class="section-title">Progress · 13 Steps</span>
-    </div>
-    <div class="steps">
-      <div class="step">
-        <span class="step-num">01–04</span>
-        <div class="step-body">
-          <div class="step-title">Foundation <span class="badge done">done</span></div>
-          <div class="step-desc">Windows workstation · GitHub · Docker + Portainer · Prometheus + Grafana + node-exporter</div>
-        </div>
-      </div>
-      <div class="step">
-        <span class="step-num">05–07</span>
-        <div class="step-body">
-          <div class="step-title">Automation &amp; IaC <span class="badge done">done</span></div>
-          <div class="step-desc">GitHub Actions self-hosted runner · Ansible roles · Terraform with MinIO S3 remote state</div>
-        </div>
-      </div>
-      <div class="step">
-        <span class="step-num">08–09</span>
-        <div class="step-body">
-          <div class="step-title">Kubernetes + GitOps <span class="badge done">done</span></div>
-          <div class="step-desc">K3s v1.35 · ArgoCD auto-sync + self-heal · git push → auto scale 1→2 replicas tested</div>
-        </div>
-      </div>
-      <div class="step">
-        <span class="step-num">10</span>
-        <div class="step-body">
-          <div class="step-title">Portfolio Site — Variant A <span class="badge live">live</span></div>
-          <div class="step-desc">ai-devops.pp.ua · Traefik ingress · cert-manager + Let's Encrypt TLS 1.3 · ArgoCD GitOps</div>
-        </div>
-      </div>
-      <div class="step">
-        <span class="step-num">11</span>
-        <div class="step-body">
-          <div class="step-title">Self-hosted LLM API — Variant B <span class="badge live">live</span></div>
-          <div class="step-desc">FastAPI proxy → Qwen3-35B · GitHub Actions → GHCR → ArgoCD → K3s · API Key auth · OpenAI-compatible · 6/6 tests</div>
-        </div>
-      </div>
-      <div class="step">
-        <span class="step-num">12</span>
-        <div class="step-body">
-          <div class="step-title">Full Observability — Variant C <span class="badge live">live</span></div>
-          <div class="step-desc">Custom Prometheus metrics in FastAPI · llama.cpp /metrics scraping · Grafana 10-panel LLM dashboard · Benchmark results documented</div>
-        </div>
-      </div>
-      <div class="step">
-        <span class="step-num">13</span>
-        <div class="step-body">
-          <div class="step-title">Production Security <span class="badge active">active</span></div>
-          <div class="step-desc">Cloudflare WAF · iptables (only CF IPs on 80/443) · CrowdSec 780 scenarios · GoAccess GeoIP analytics · Auto-ban live</div>
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: portfolio-html
+  namespace: default
+data:
+  index.html: |
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Yurii Lukianets — DevOps Engineer</title>
+      <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+      <style>
+        :root {
+          --bg: #0a0a0a;
+          --surface: #111111;
+          --border: #222222;
+          --accent: #e8ff00;
+          --text: #f0f0f0;
+          --muted: #555555;
+          --muted2: #888888;
+          --mono: 'IBM Plex Mono', monospace;
+          --sans: 'IBM Plex Sans', sans-serif;
+        }
+    
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+        body {
+          background: var(--bg);
+          color: var(--text);
+          font-family: var(--sans);
+          font-weight: 300;
+          min-height: 100vh;
+          line-height: 1.6;
+        }
+    
+        .wrap { max-width: 960px; margin: 0 auto; padding: 0 2rem; }
+    
+        /* Top bar */
+        .topbar {
+          border-bottom: 1px solid var(--border);
+          padding: 1rem 0;
+        }
+        .topbar-inner {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          font-family: var(--mono);
+          font-size: 0.7rem;
+          color: var(--muted);
+          letter-spacing: 0.1em;
+        }
+        .topbar-right { display: flex; align-items: center; gap: 1.5rem; }
+        .live-dot {
+          display: flex; align-items: center; gap: 0.4rem;
+          color: #4ade80;
+        }
+        .live-dot::before {
+          content: '';
+          width: 6px; height: 6px;
+          background: #4ade80;
+          border-radius: 50%;
+          animation: blink 2s infinite;
+        }
+        @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+    
+        /* Header */
+        header {
+          padding: 5rem 0 4rem;
+          border-bottom: 1px solid var(--border);
+        }
+    
+        .name {
+          font-family: var(--sans);
+          font-size: clamp(2.8rem, 6vw, 4.5rem);
+          font-weight: 600;
+          letter-spacing: -0.04em;
+          line-height: 1;
+          margin-bottom: 1rem;
+        }
+    
+        .role {
+          font-family: var(--mono);
+          font-size: 0.8rem;
+          color: var(--muted2);
+          letter-spacing: 0.08em;
+          margin-bottom: 2.5rem;
+        }
+    
+        .header-meta {
+          display: flex;
+          gap: 2rem;
+          flex-wrap: wrap;
+          border-top: 1px solid var(--border);
+          padding-top: 1.5rem;
+        }
+        .meta-item { display: flex; flex-direction: column; gap: 0.2rem; }
+        .meta-label { font-family: var(--mono); font-size: 0.65rem; color: var(--muted); letter-spacing: 0.1em; text-transform: uppercase; }
+        .meta-val { font-family: var(--mono); font-size: 0.8rem; color: var(--text); }
+        .meta-val a { color: var(--text); text-decoration: none; }
+        .meta-val a:hover { color: var(--accent); }
+    
+        /* Sections */
+        section { padding: 3.5rem 0; border-bottom: 1px solid var(--border); }
+    
+        .section-head {
+          display: flex;
+          align-items: baseline;
+          gap: 1.5rem;
+          margin-bottom: 2rem;
+        }
+        .section-num {
+          font-family: var(--mono);
+          font-size: 0.65rem;
+          color: var(--muted);
+          letter-spacing: 0.1em;
+          min-width: 24px;
+        }
+        .section-title {
+          font-size: 0.7rem;
+          font-family: var(--mono);
+          letter-spacing: 0.15em;
+          text-transform: uppercase;
+          color: var(--muted2);
+        }
+    
+        /* Stack table */
+        .stack-table { width: 100%; border-collapse: collapse; }
+        .stack-table tr { border-bottom: 1px solid var(--border); }
+        .stack-table tr:last-child { border-bottom: none; }
+        .stack-table tr:hover td { color: var(--text); }
+        .stack-table td {
+          padding: 1rem 0;
+          font-size: 0.85rem;
+          color: var(--muted2);
+          transition: color 0.15s;
+          vertical-align: top;
+        }
+        .stack-table td:first-child {
+          font-family: var(--mono);
+          font-size: 0.75rem;
+          color: var(--muted);
+          width: 180px;
+          padding-right: 2rem;
+          letter-spacing: 0.05em;
+        }
+        .stack-table td:nth-child(2) {
+          color: var(--text);
+          font-weight: 400;
+          width: 220px;
+        }
+        .stack-table td:last-child { color: var(--muted2); }
+    
+        .tags { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+        .tag {
+          font-family: var(--mono);
+          font-size: 0.65rem;
+          padding: 0.2rem 0.6rem;
+          border: 1px solid var(--border);
+          color: var(--muted2);
+          letter-spacing: 0.05em;
+        }
+        .tag.hi { border-color: var(--accent); color: var(--accent); }
+        .tag.ok { border-color: #333; color: #888; }
+    
+        /* Metrics row */
+        .metrics-row {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          border: 1px solid var(--border);
+        }
+        .metric {
+          padding: 1.5rem;
+          border-right: 1px solid var(--border);
+        }
+        .metric:last-child { border-right: none; }
+        .metric-val {
+          font-family: var(--mono);
+          font-size: 2rem;
+          font-weight: 500;
+          color: var(--accent);
+          line-height: 1;
+          margin-bottom: 0.4rem;
+        }
+        .metric-label {
+          font-family: var(--mono);
+          font-size: 0.65rem;
+          color: var(--muted);
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+        }
+    
+        /* Timeline */
+        .steps { display: flex; flex-direction: column; }
+        .step {
+          display: grid;
+          grid-template-columns: 48px 1fr;
+          border-bottom: 1px solid var(--border);
+        }
+        .step:last-child { border-bottom: none; }
+        .step-num {
+          font-family: var(--mono);
+          font-size: 0.65rem;
+          color: var(--muted);
+          padding: 1.2rem 0;
+          letter-spacing: 0.05em;
+        }
+        .step-body { padding: 1.2rem 0 1.2rem 1.5rem; border-left: 1px solid var(--border); }
+        .step-title {
+          font-size: 0.9rem;
+          font-weight: 500;
+          margin-bottom: 0.3rem;
+          display: flex;
+          align-items: center;
+          gap: 0.8rem;
+        }
+        .badge {
+          font-family: var(--mono);
+          font-size: 0.6rem;
+          padding: 0.1rem 0.5rem;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+        }
+        .badge.live { color: var(--accent); border: 1px solid var(--accent); }
+        .badge.done { color: var(--muted); border: 1px solid var(--border); }
+        .badge.active { color: #4ade80; border: 1px solid #4ade80; }
+        .step-desc { font-size: 0.8rem; color: var(--muted2); line-height: 1.6; }
+    
+        /* Project */
+        .project {
+          border: 1px solid var(--border);
+          padding: 2rem;
+          display: grid;
+          grid-template-columns: 1fr auto;
+          gap: 2rem;
+          align-items: start;
+        }
+        .project-title { font-size: 1rem; font-weight: 500; margin-bottom: 0.5rem; }
+        .project-desc { font-size: 0.8rem; color: var(--muted2); line-height: 1.6; margin-bottom: 1rem; }
+        .project-link {
+          font-family: var(--mono);
+          font-size: 0.7rem;
+          color: var(--text);
+          text-decoration: none;
+          border: 1px solid var(--border);
+          padding: 0.6rem 1.2rem;
+          white-space: nowrap;
+          letter-spacing: 0.05em;
+          transition: all 0.15s;
+        }
+        .project-link:hover { border-color: var(--accent); color: var(--accent); }
+    
+        /* Footer */
+        footer {
+          padding: 2rem 0;
+          display: flex;
+          justify-content: space-between;
+          flex-wrap: wrap;
+          gap: 0.5rem;
+          font-family: var(--mono);
+          font-size: 0.65rem;
+          color: var(--muted);
+          letter-spacing: 0.08em;
+        }
+    
+        @media (max-width: 600px) {
+          .metrics-row { grid-template-columns: 1fr 1fr; }
+          .stack-table td:last-child { display: none; }
+          .project { grid-template-columns: 1fr; }
+          .step-body { padding-left: 1rem; }
+        }
+      </style>
+    </head>
+    <body>
+    
+    <div class="topbar">
+      <div class="wrap">
+        <div class="topbar-inner">
+          <span>yurii-lukianets / portfolio</span>
+          <div class="topbar-right">
+            <span class="live-dot">all systems operational</span>
+            <span>ai-devops.pp.ua</span>
+          </div>
         </div>
       </div>
     </div>
-  </section>
-
-  <!-- Project -->
-  <section>
-    <div class="section-head">
-      <span class="section-num">04</span>
-      <span class="section-title">Project</span>
-    </div>
-    <div class="project">
-      <div>
-        <div class="project-title">SysOps to DevOps</div>
-        <div class="project-desc">
-          Full DevOps learning path built from scratch — from Windows workstation to production
-          Kubernetes with self-hosted LLM inference, GitOps pipeline, observability, and security.
+    
+    <div class="wrap">
+    
+      <header>
+        <div class="name">Yurii Lukianets</div>
+        <div class="role">SYSOPS → DEVOPS ENGINEER · LOCAL LLM INFRASTRUCTURE</div>
+        <div class="header-meta">
+          <div class="meta-item">
+            <span class="meta-label">Role</span>
+            <span class="meta-val">DevOps / Infrastructure Engineer</span>
+          </div>
+          <div class="meta-item">
+            <span class="meta-label">Focus</span>
+            <span class="meta-val">Kubernetes · GitOps · LLM Inference</span>
+          </div>
+          <div class="meta-item">
+            <span class="meta-label">GitHub</span>
+            <span class="meta-val"><a href="https://github.com/yurii-lukianets/SysOps_to_DevOps">SysOps_to_DevOps →</a></span>
+          </div>
+          <div class="meta-item">
+            <span class="meta-label">LLM API</span>
+            <span class="meta-val"><a href="https://llm.ai-devops.pp.ua/health">llm.ai-devops.pp.ua →</a></span>
+          </div>
         </div>
-        <div class="tags">
-          <span class="tag ok">K3s</span><span class="tag ok">ArgoCD</span>
-          <span class="tag ok">Terraform</span><span class="tag ok">Ansible</span>
-          <span class="tag ok">Prometheus</span><span class="tag ok">Grafana</span>
-          <span class="tag ok">llama.cpp</span><span class="tag ok">FastAPI</span>
-          <span class="tag ok">Cloudflare</span><span class="tag ok">CrowdSec</span>
+      </header>
+    
+      <!-- Stack -->
+      <section>
+        <div class="section-head">
+          <span class="section-num">01</span>
+          <span class="section-title">Infrastructure Stack</span>
         </div>
-      </div>
-      <a class="project-link" href="https://github.com/yurii-lukianets/SysOps_to_DevOps">
-        View on GitHub →
-      </a>
+        <table class="stack-table">
+          <tr>
+            <td>orchestration</td>
+            <td>K3s v1.35 · Kubernetes</td>
+            <td><div class="tags"><span class="tag hi">K3s</span><span class="tag ok">Traefik</span><span class="tag ok">Helm</span><span class="tag ok">CoreDNS</span></div></td>
+          </tr>
+          <tr>
+            <td>gitops / cd</td>
+            <td>ArgoCD v3.4.2</td>
+            <td><div class="tags"><span class="tag hi">ArgoCD</span><span class="tag ok">GitHub Actions</span><span class="tag ok">GHCR</span></div></td>
+          </tr>
+          <tr>
+            <td>iac</td>
+            <td>Terraform + Ansible</td>
+            <td><div class="tags"><span class="tag hi">Terraform</span><span class="tag ok">Ansible</span><span class="tag ok">MinIO S3</span></div></td>
+          </tr>
+          <tr>
+            <td>observability</td>
+            <td>Prometheus + Grafana</td>
+            <td><div class="tags"><span class="tag hi">Prometheus</span><span class="tag ok">Grafana</span><span class="tag ok">node-exporter</span></div></td>
+          </tr>
+          <tr>
+            <td>local llm</td>
+            <td>Qwen3-35B · llama.cpp</td>
+            <td><div class="tags"><span class="tag hi">CUDA</span><span class="tag ok">RTX 3050</span><span class="tag ok">MXFP4 MoE</span><span class="tag ok">OpenAI API</span></div></td>
+          </tr>
+          <tr>
+            <td>security</td>
+            <td>Cloudflare + CrowdSec</td>
+            <td><div class="tags"><span class="tag hi">WAF</span><span class="tag ok">iptables</span><span class="tag ok">CrowdSec</span><span class="tag ok">GeoIP</span></div></td>
+          </tr>
+          <tr>
+            <td>tls</td>
+            <td>cert-manager · Let's Encrypt</td>
+            <td><div class="tags"><span class="tag ok">TLS 1.3</span><span class="tag ok">auto-renewal</span></div></td>
+          </tr>
+        </table>
+      </section>
+    
+      <!-- Metrics -->
+      <section>
+        <div class="section-head">
+          <span class="section-num">02</span>
+          <span class="section-title">LLM Performance · RTX 3050 · Qwen3-35B-A3B MXFP4</span>
+        </div>
+        <div class="metrics-row">
+          <div class="metric">
+            <div class="metric-val">34</div>
+            <div class="metric-label">tok/s generation</div>
+          </div>
+          <div class="metric">
+            <div class="metric-val">411</div>
+            <div class="metric-label">tok/s prefill</div>
+          </div>
+          <div class="metric">
+            <div class="metric-val">2.9s</div>
+            <div class="metric-label">avg latency</div>
+          </div>
+          <div class="metric">
+            <div class="metric-val">94%</div>
+            <div class="metric-label">VRAM usage</div>
+          </div>
+          <div class="metric">
+            <div class="metric-val">32K</div>
+            <div class="metric-label">context tokens</div>
+          </div>
+          <div class="metric">
+            <div class="metric-val">6/6</div>
+            <div class="metric-label">API tests pass</div>
+          </div>
+        </div>
+      </section>
+    
+      <!-- Steps -->
+      <section>
+        <div class="section-head">
+          <span class="section-num">03</span>
+          <span class="section-title">Progress · 13 Steps</span>
+        </div>
+        <div class="steps">
+          <div class="step">
+            <span class="step-num">01–04</span>
+            <div class="step-body">
+              <div class="step-title">Foundation <span class="badge done">done</span></div>
+              <div class="step-desc">Windows workstation · GitHub · Docker + Portainer · Prometheus + Grafana + node-exporter</div>
+            </div>
+          </div>
+          <div class="step">
+            <span class="step-num">05–07</span>
+            <div class="step-body">
+              <div class="step-title">Automation &amp; IaC <span class="badge done">done</span></div>
+              <div class="step-desc">GitHub Actions self-hosted runner · Ansible roles · Terraform with MinIO S3 remote state</div>
+            </div>
+          </div>
+          <div class="step">
+            <span class="step-num">08–09</span>
+            <div class="step-body">
+              <div class="step-title">Kubernetes + GitOps <span class="badge done">done</span></div>
+              <div class="step-desc">K3s v1.35 · ArgoCD auto-sync + self-heal · git push → auto scale 1→2 replicas tested</div>
+            </div>
+          </div>
+          <div class="step">
+            <span class="step-num">10</span>
+            <div class="step-body">
+              <div class="step-title">Portfolio Site — Variant A <span class="badge live">live</span></div>
+              <div class="step-desc">ai-devops.pp.ua · Traefik ingress · cert-manager + Let's Encrypt TLS 1.3 · ArgoCD GitOps</div>
+            </div>
+          </div>
+          <div class="step">
+            <span class="step-num">11</span>
+            <div class="step-body">
+              <div class="step-title">Self-hosted LLM API — Variant B <span class="badge live">live</span></div>
+              <div class="step-desc">FastAPI proxy → Qwen3-35B · GitHub Actions → GHCR → ArgoCD → K3s · API Key auth · OpenAI-compatible · 6/6 tests</div>
+            </div>
+          </div>
+          <div class="step">
+            <span class="step-num">12</span>
+            <div class="step-body">
+              <div class="step-title">Full Observability — Variant C <span class="badge live">live</span></div>
+              <div class="step-desc">Custom Prometheus metrics in FastAPI · llama.cpp /metrics scraping · Grafana 10-panel LLM dashboard · Benchmark results documented</div>
+            </div>
+          </div>
+          <div class="step">
+            <span class="step-num">13</span>
+            <div class="step-body">
+              <div class="step-title">Production Security <span class="badge active">active</span></div>
+              <div class="step-desc">Cloudflare WAF · iptables (only CF IPs on 80/443) · CrowdSec 780 scenarios · GoAccess GeoIP analytics · Auto-ban live</div>
+            </div>
+          </div>
+        </div>
+      </section>
+    
+      <!-- Project -->
+      <section>
+        <div class="section-head">
+          <span class="section-num">04</span>
+          <span class="section-title">Project</span>
+        </div>
+        <div class="project">
+          <div>
+            <div class="project-title">SysOps to DevOps</div>
+            <div class="project-desc">
+              Full DevOps learning path built from scratch — from Windows workstation to production
+              Kubernetes with self-hosted LLM inference, GitOps pipeline, observability, and security.
+            </div>
+            <div class="tags">
+              <span class="tag ok">K3s</span><span class="tag ok">ArgoCD</span>
+              <span class="tag ok">Terraform</span><span class="tag ok">Ansible</span>
+              <span class="tag ok">Prometheus</span><span class="tag ok">Grafana</span>
+              <span class="tag ok">llama.cpp</span><span class="tag ok">FastAPI</span>
+              <span class="tag ok">Cloudflare</span><span class="tag ok">CrowdSec</span>
+            </div>
+          </div>
+          <a class="project-link" href="https://github.com/yurii-lukianets/SysOps_to_DevOps">
+            View on GitHub →
+          </a>
+        </div>
+      </section>
+    
+      <footer>
+        <span>Deployed via ArgoCD GitOps · K3s · HTTPS by Let's Encrypt</span>
+        <span>Cloudflare WAF · CrowdSec · TLS 1.3</span>
+      </footer>
+    
     </div>
-  </section>
-
-  <footer>
-    <span>Deployed via ArgoCD GitOps · K3s · HTTPS by Let's Encrypt</span>
-    <span>Cloudflare WAF · CrowdSec · TLS 1.3</span>
-  </footer>
-
-</div>
-</body>
-</html>
+    </body>
+    </html>
