@@ -149,4 +149,7 @@ Full checklist with verification commands → [`docs/CHECKLIST.md`](docs/CHECKLI
 - **Self-hosted AI**: 35B LLM on consumer GPU with production API and benchmarks
 - **Full observability**: Prometheus + Grafana with real measured performance data
 - **Production security**: 4-layer protection, auto-banning attackers from first hour
-- **Verified performance**: 34 tok/s generation — measured, not estimated
+- **Verified performance**: 34 tok/s generation — measured, not estimated## Model Architecture
+- **MoE (Mixture of Experts)**: 35B total params, but only ~3B active per token
+- **Quantization**: MXFP4 MOE — optimized for MoE architecture
+- **Why it fits**: Active params fit in 8GB VRAM, sparse activation pattern
