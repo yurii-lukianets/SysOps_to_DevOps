@@ -68,6 +68,7 @@ curl -s http://192.168.100.203:9091/api/v1/targets | python3 -m json.tool | grep
 ## 4. Якщо щось не так
 
 ### Docker контейнери впали
+Все що з ```bash виконується в терміналі з підключенням до хоста 192.168.100.203 командою ssh devops-lab
 ```bash
 cd ~/repo/docker/monitoring && docker compose up -d
 cd ~/repo/docker/portainer && docker compose up -d

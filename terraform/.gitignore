@@ -4,3 +4,4 @@ terraform.tfstate
 terraform.tfstate.backup
 *.tfvars
 .test_iq_tools
+docs\CHECKLIST.md
