@@ -4,3 +4,4 @@ __pycache__/
 *.pyc
 argocd.exe
 CLAUD.md
+docs\CHECKLIST.md
