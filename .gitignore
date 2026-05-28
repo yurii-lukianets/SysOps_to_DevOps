@@ -7,6 +7,5 @@ CLAUD.md
 docs\CHECKLIST.md
 .test_iq_tools
 ARGOCD_GITOPS_ANALYSIS.md
-CLAUDE.md
 aws/
 terraform/aws/
