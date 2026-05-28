@@ -5,3 +5,4 @@ __pycache__/
 argocd.exe
 CLAUD.md
 docs\CHECKLIST.md
+.test_iq_tools
