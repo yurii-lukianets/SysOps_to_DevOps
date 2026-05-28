@@ -1,0 +1,103 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: portfolio-html
+  namespace: default
+data:
+  index.html: |
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Yurii Lukianets — DevOps Engineer</title>
+      <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', sans-serif; background: #0d1117; color: #c9d1d9; }
+        header { background: #161b22; padding: 2rem; border-bottom: 1px solid #30363d; }
+        header h1 { color: #58a6ff; font-size: 2rem; }
+        header p { color: #8b949e; margin-top: 0.5rem; }
+        .container { max-width: 900px; margin: 2rem auto; padding: 0 1rem; }
+        .stack { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin: 2rem 0; }
+        .card { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 1.5rem; }
+        .card h3 { color: #58a6ff; margin-bottom: 0.5rem; }
+        .card p { color: #8b949e; font-size: 0.9rem; }
+        .badge { display: inline-block; background: #1f6feb; color: #fff; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; margin: 2px; }
+        .live { color: #3fb950; font-weight: bold; }
+        footer { text-align: center; padding: 2rem; color: #8b949e; border-top: 1px solid #30363d; margin-top: 3rem; }
+        a { color: #58a6ff; }
+      </style>
+    </head>
+    <body>
+      <header>
+        <h1>Yurii Lukianets</h1>
+        <p>SysOps → DevOps Engineer | Local LLM Infrastructure</p>
+      </header>
+      <div class="container">
+        <h2 style="margin: 2rem 0 1rem; color: #e6edf3;">🚀 Live Infrastructure</h2>
+        <p class="live">● All services running on self-hosted K3s cluster</p>
+
+        <div class="stack">
+          <div class="card">
+            <h3>Container Orchestration</h3>
+            <p>K3s v1.35 on Ubuntu 22.04</p>
+            <br>
+            <span class="badge">Kubernetes</span>
+            <span class="badge">K3s</span>
+            <span class="badge">Traefik</span>
+          </div>
+          <div class="card">
+            <h3>GitOps</h3>
+            <p>ArgoCD auto-sync from GitHub</p>
+            <br>
+            <span class="badge">ArgoCD</span>
+            <span class="badge">GitHub Actions</span>
+            <span class="badge">Git</span>
+          </div>
+          <div class="card">
+            <h3>IaC</h3>
+            <p>Terraform + Ansible automation</p>
+            <br>
+            <span class="badge">Terraform</span>
+            <span class="badge">Ansible</span>
+            <span class="badge">MinIO</span>
+          </div>
+          <div class="card">
+            <h3>Monitoring</h3>
+            <p>Prometheus + Grafana stack</p>
+            <br>
+            <span class="badge">Prometheus</span>
+            <span class="badge">Grafana</span>
+            <span class="badge">node-exporter</span>
+          </div>
+          <div class="card">
+            <h3>Local LLM</h3>
+            <p>Qwen3-35B on RTX 3050</p>
+            <br>
+            <span class="badge">llama.cpp</span>
+            <span class="badge">Qwen3</span>
+            <span class="badge">CUDA</span>
+          </div>
+          <div class="card">
+            <h3>CI/CD</h3>
+            <p>GitHub Actions + self-hosted runner</p>
+            <br>
+            <span class="badge">GitHub Actions</span>
+            <span class="badge">Docker</span>
+            <span class="badge">Portainer</span>
+          </div>
+        </div>
+
+        <h2 style="margin: 2rem 0 1rem; color: #e6edf3;">📁 Project</h2>
+        <div class="card">
+          <h3>SysOps to DevOps</h3>
+          <p>Full DevOps learning path built from scratch — local LLM, Docker, K8s, GitOps, IaC</p>
+          <br>
+          <a href="https://github.com/yurii-lukianets/SysOps_to_DevOps">github.com/yurii-lukianets/SysOps_to_DevOps</a>
+        </div>
+      </div>
+      <footer>
+        <p>Deployed via ArgoCD GitOps • Hosted on K3s • HTTPS by Let's Encrypt</p>
+      </footer>
+    </body>
+    </html>
