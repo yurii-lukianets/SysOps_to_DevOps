@@ -9,3 +9,9 @@ docs\CHECKLIST.md
 ARGOCD_GITOPS_ANALYSIS.md
 aws/
 terraform/aws/
+
+# Session notes (містять секрети)
+.sonet_free.md
+.cline.md
+.sonet_*.md
+.cline_*.md
