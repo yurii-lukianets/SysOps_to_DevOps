@@ -290,10 +290,180 @@ Disk:  ~3GB used (Ubuntu + K3s)
 
 ---
 
-## 8. Наступні кроки
+## 8. Деплой portfolio + cert-manager на AWS K3s
 
-- [ ] Деплой `llm-api` через ArgoCD
+### 8.1 Структура маніфестів (перевикористано з локального кластеру)
+
+```
+k8s/portfolio/
+├── configmap.yml      # HTML portfolio
+├── deployment.yml     # nginx pod + Service + Ingress
+└── argocd-app.yml     # НЕ застосовано на AWS (ArgoCD лише локально)
+```
+
+```powershell
+$env:KUBECONFIG = "$env:USERPROFILE\.kube\config-aws"
+kubectl apply -f k8s/cert-manager/cluster-issuer.yml
+kubectl apply -f k8s/portfolio/configmap.yml
+kubectl apply -f k8s/portfolio/deployment.yml
+```
+
+### 8.2 Зміна DNS у Cloudflare
+
+Усі записи для `ai-devops.pp.ua` (root, www, llm, mail, ftp) → `13.49.255.149` Proxied.
+
+### 8.3 Resource state після деплою
+
+```
+ingress: portfolio (ai-devops.pp.ua → service/portfolio:80)
+ingress: cm-acme-http-solver-tg889 (challenge path → solver:8089)
+pod:     portfolio-86574cc599-zhlsb  (10.42.0.11, Running)
+pod:     cm-acme-http-solver-6k897  (10.42.0.12, Running)
+svc:     traefik (LoadBalancer 172.31.39.148, NodePort 30599/32012)
+```
+
+---
+
+## 9. Найскладніший баг: "Connection refused" на EIP:80
+
+### 9.1 Хронологія спроб
+
+| # | Що зроблено | Результат |
+|---|-------------|-----------|
+| 1 | K3s з `--disable servicelb` | ClusterIP Traefik, нема LB IP, EIP:80 → RST |
+| 2 | Re-enable servicelb (klipper-lb) | svclb-traefik DaemonSet Running, але EIP:80 досі RST |
+| 3 | `iptables -t nat -A PREROUTING -p tcp --dport 80 -j REDIRECT --to-ports 30599` | EIP:80 → 200 (бо Traefik слухає 30599), але cert-manager self-check з Cloudflare = 521 |
+| 4 | `kubectl patch svc traefik -p '{"spec":{"loadBalancerIP":"13.49.255.149"}}'` | kube-proxy **проігнорував**, EXTERNAL-IP залишився `172.31.39.148` |
+| 5 | **Видалив ручні REDIRECT правила** | EIP:80 → 200, cert-manager self-check = 200, **cert issued** ✅ |
+
+### 9.2 Корінь проблеми: чому K3s klipler-lb не працював "з коробки"
+
+**K3s `klipper-lb` працює виключно через iptables у просторі імен klipper-pod:**
+
+```
+svclb-traefik-<hash> (hostPort: 80/443, hostNetwork: false)
+  ├── container lb-tcp-80
+  │     └── iptables -t nat -I PREROUTING --dport 80 \
+  │                       -j DNAT --to 10.43.110.255:80   ← Traefik ClusterIP
+  └── container lb-tcp-443 (те саме для 443)
+```
+
+**Ключове**: iptables правила додаються в **мережевому просторі klipper-pod**, а не на хості. Щоб трафік від зовнішнього клієнта дійшов до цих правил, kubelet мусить зробити DNAT з host:80 → klipper-pod:80 (через механізм `hostPort`). Це і є ланка, яка ламається на AWS.
+
+### 9.3 Те, що "мало б" працювати, але не працює
+
+K3s Traefik Service має type `LoadBalancer` з `EXTERNAL-IP: 172.31.39.148` (приватний IP EC2). kube-proxy автоматично додає правило:
+
+```
+-A KUBE-SERVICES -d 172.31.39.148/32 -p tcp --dport 80 \
+   -j KUBE-EXT-UQMCRMJZLI3FTLDP
+-A KUBE-EXT-UQMCRMJZLI3FTLDP -d 0.0.0.0/0 -j KUBE-MARK-MASQ
+-A KUBE-EXT-UQMCRMJZLI3FTLDP -j DNAT --to 10.42.0.6:8000  ← Traefik pod
+```
+
+Це правило **має б працювати** для зовнішнього трафіку на EIP, бо:
+1. Пакет з EIP 13.49.255.149:80 приходить на eth0
+2. AWS/Azure EIP виконує hairpin NAT dst→172.31.39.148 **до** netfilter
+3. iptables PREROUTING бачить dst=172.31.39.148:80
+4. KUBE-SERVICES спрацьовує, DNAT → Traefik pod
+5. Відповідь через conntrack повертається назад
+
+**Чому це не працювало спочатку** (до додавання REDIRECT):
+- Причина досі не 100% з'ясована, але скоріш за все kube-proxy **тільки-но стартував** і KUBE-EXT правила ще не були повністю синхронізовані, або ж `ADDRTYPE match dst-type LOCAL` для EIP-прив'язки не спрацьовувало через особливості AWS hairpin NAT.
+
+**Workaround (правильний)**: перезапуск klipper-lb pod форсує kube-proxy повністю оновити правила. Або просто почекати ~30 секунд після старту K3s.
+
+### 9.4 Чому `loadBalancerIP: 13.49.255.149` НЕ працює
+
+Спроба змінити Traefik Service:
+
+```bash
+kubectl patch svc traefik -n kube-system -p '{"spec":{"loadBalancerIP":"13.49.255.149"}}'
+# service/traefik patched  ← Service прийняв значення
+# але EXTERNAL-IP у get svc все ще 172.31.39.148
+# kube-proxy НЕ оновив KUBE-EXT правила
+```
+
+**Чому**: K3s валідує `loadBalancerIP` — він мусить бути **в межах subnet'и VPC EC2** (`172.31.0.0/16`). EIP `13.49.255.149` — це **public IP ззовні VPC**, тож kube-proxy/klipper-lb мовчки відкидає це значення. У старих версіях K3s навіть повертав помилку, в нових — просто ігнорує.
+
+**Висновок**: klipper-lb розрахований на хмарні провайдери типу AWS NLB/GCP LB, де LoadBalancer IP = приватний IP з CIDR VPC. Для AWS з EIP + Cloudflare **не змінюйте** `loadBalancerIP` — залиште `172.31.39.148`, бо це саме те, що AWS EIP hairpin NAT'ить на вході.
+
+### 9.5 Чому ручні REDIRECT правила — це **ПОГАНО**
+
+```bash
+# Що я зробив як hack:
+iptables -t nat -A PREROUTING -p tcp --dport 80 -j REDIRECT --to-ports 30599
+iptables -t nat -A PREROUTING -p tcp --dport 443 -j REDIRECT --to-ports 32012
+```
+
+**Наче працює**, але:
+- ❌ Зламана логіка kube-proxy (він вже має правильні правила для `172.31.39.148:80`, але REDIRECT їх перехоплює)
+- ❌ Не переживає `systemctl restart k3s` (правила в `/etc/rancher/k3s/config.yaml`, але iptables flush при перезапуску)
+- ❌ Hairpin з localhost на EIP не працює (EIP 13.49.255.149 не прив'язаний до localhost)
+- ❌ cert-manager self-check повертав 521 від Cloudflare, бо REDIRECT ламав маршрут
+
+**Правильне рішення**: **видалити REDIRECT правила**, дочекатися ~30 секунд після старту K3s, kube-proxy сам створить правильні правила для `172.31.39.148`.
+
+```bash
+sudo iptables -t nat -D PREROUTING -p tcp --dport 80 -j REDIRECT --to-ports 30599
+sudo iptables -t nat -D PREROUTING -p tcp --dport 443 -j REDIRECT --to-ports 32012
+```
+
+### 9.6 Як правильно дебажити "Connection refused" на EIP
+
+```bash
+# 1. Чи слухає хост порт 80/443?
+ssh ubuntu@13.49.255.149 "sudo ss -tlnp | grep -E ':80|:443'"
+# Якщо нічого — klipper-lb не встановив правила
+
+# 2. Чи є правила kube-proxy для LoadBalancer IP?
+sudo iptables -t nat -L KUBE-SERVICES | grep 172.31.39.148
+# Має бути: -d 172.31.39.148 --dport 80 -j KUBE-EXT-...
+
+# 3. Чи є EXTERNAL-IP у Traefik Service?
+kubectl get svc traefik -n kube-system
+# EXTERNAL-IP має = приватний IP EC2
+
+# 4. Тест з самого EC2 (hairpin):
+curl -H "Host: ai-devops.pp.ua" http://172.31.39.148/  # має 502/404, не connection refused
+
+# 5. Тест challenge endpoint:
+curl http://172.31.39.148/.well-known/acme-challenge/<token>
+# Має повернути key authorization, НЕ 404
+
+# 6. Якщо 1-5 ОК, але зовнішній curl = RST:
+#    → перезапустити svclb-traefik pod
+kubectl delete pod -n kube-system -l app=svclb-traefik
+```
+
+### 9.7 Фінальна перевірка
+
+```powershell
+curl.exe -I https://ai-devops.pp.ua/
+# HTTP/1.1 200 OK ✅
+# Server: cloudflare ✅
+# cert-manager: portfolio-tls Ready=True ✅
+```
+
+---
+
+## 10. Помилки GitHub push protection
+
+Детальніше у `docs/security/secrets-rotation.md`. Коротко:
+- Перший push з AWS credentials у `.sonet_free.md` заблоковано
+- Виправлено: redact + `git filter-branch` + force-push вручну
+- AWS ключі ротовано
+
+---
+
+## 11. Наступні кроки
+
+- [x] Деплой portfolio + cert-manager ✅
+- [x] TLS cert issued ✅
+- [x] HTTPS через Cloudflare працює ✅
+- [ ] Деплой `llm-api` (Windows → AWS не переносимо, llama-server залишається локально)
 - [ ] Перевести Terraform state в S3 (MinIO)
 - [ ] Налаштувати backup etcd
-- [ ] Додати Cloudflare DNS / proxy
+- [ ] Обмежити SG тільки на Cloudflare IP ranges
+- [ ] CrowdSec на AWS K3s
 - [ ] Перевірити AWS billing dashboard
