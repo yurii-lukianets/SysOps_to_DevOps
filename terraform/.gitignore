@@ -11,3 +11,5 @@ docs\CHECKLIST.md
 CLAUDE.md
 continue.md
 ARGOCD_GITOPS_ANALYSIS.md
+docs\kubectl-setup-windows.md
+docs\aws-k3s-setup.md
