@@ -624,8 +624,8 @@ kubelet-arg:
 - [x] AWS billing: $0.00 (Free Tier) ✅
 - [ ] Деплой `llm-api` (Windows → AWS не переносимо, llama-server залишається локально)
 - [x] Observability на AWS (Prometheus + node-exporter) ✅
+- [x] Portfolio UX: /health endpoint + status banner + AWS Step 14 ✅
 - [ ] CrowdSec evaluation на AWS
-- [ ] Portfolio UX покращення
 
 ---
 
@@ -786,3 +786,97 @@ kubectl get pods -A
 ```
 
 **Важливо:** Бекап робиться через `sqlite3 .backup` — це online бекап без зупинки K3s. Але відновлення потребує зупинки K3s.
+
+---
+
+## 19. Observability на AWS (Prometheus + node-exporter)
+
+### 19.1 Склад
+
+| Компонент | Ресурси | Статус |
+|-----------|---------|--------|
+| node-exporter DaemonSet | 32Mi req / 64Mi limit | ✅ Up |
+| Prometheus Deployment | 80Mi req / 128Mi limit | ✅ Up |
+| Prometheus Service (ClusterIP) | — | ✅ Created |
+
+**Загальний overhead:** ~140MB RAM. Після деплою: 233Mi available (стабільно).
+
+### 19.2 Манифести
+
+```yaml
+# k8s/observability/node-exporter.yml
+# k8s/observability/node-exporter.yml - DaemonSet з hostNetwork
+# k8s/observability/prometheus-config.yml - ConfigMap scrape config
+# k8s/observability/prometheus.yml - Deployment
+# k8s/observability/prometheus-svc.yml - Service
+```
+
+Scrape config (спрощений, тільки node-exporter):
+```yaml
+global:
+  scrape_interval: 60s
+  evaluation_interval: 60s
+  scrape_timeout: 10s
+scrape_configs:
+  - job_name: 'node'
+    static_configs:
+      - targets: ['node-exporter.observability.svc:9100']
+```
+
+### 19.3 Перевірка
+
+```bash
+# Чи збираються метрики
+kubectl get pods -n observability
+curl -s http://<prometheus-pod-ip>:9090/api/v1/targets
+
+# Пам'ять
+free -h
+# Має бути >150Mi available після деплою
+```
+
+**Важливо:** Prometheus працює з `emptyDir` — дані губляться при перезапуску pod. Для продакшну треба PVC (але local-storage вимкнено для економії RAM).
+
+---
+
+## 20. Portfolio UX покращення
+
+### 20.1 /health endpoint
+
+Додано nginx location block через ConfigMap `nginx-config`:
+
+```nginx
+location /health {
+    default_type application/json;
+    return 200 '{"status":"ok","service":"portfolio"}';
+}
+```
+
+**Тест:**
+```bash
+curl https://ai-devops.pp.ua/health
+# {"status":"ok","service":"portfolio"}
+```
+
+### 20.2 Status banner (JavaScript health check)
+
+У HTML додано скрипт, який при завантаженні сторінки викликає `/health`:
+
+```javascript
+fetch('/health').then(r=>{if(!r.ok)throw Error()}).catch(()=>{
+  document.getElementById('status-dot').style.color='#f87171';
+  document.getElementById('status-dot').textContent='degraded';
+});
+```
+
+Якщо health check проходить — зелений індикатор "all systems operational". Якщо ні — червоний "degraded".
+
+### 20.3 Оновлення HTML
+
+- **Секція Progress:** додано Step 14 — AWS K3s Deployment (badge: live)
+- **Footer:** змінено з "ArgoCD GitOps" на "AWS K3s + Local K3s"
+
+**Файли:**
+- `k8s/portfolio/configmap.yml` — HTML з новими секціями + JS health check
+- `k8s/portfolio/nginx-config.yml` — nginx конфіг з /health та /stub_status
+- `k8s/portfolio/deployment.yml` — змонтовано nginx-config volume

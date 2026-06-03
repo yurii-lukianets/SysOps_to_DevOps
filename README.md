@@ -88,7 +88,7 @@ Personal DevOps learning path built from scratch — from Windows workstation to
 - [x] OOM recovery: 4GB swap, disabled metrics-server/local-storage, kubelet-arg
 - [x] HTTPS live: [https://ai-devops.pp.ua](https://ai-devops.pp.ua) (Cloudflare proxied)
 - [x] **Observability on AWS** — Prometheus + node-exporter (minimal, 1GB RAM budget) ✅
-- [ ] Portfolio UX improvements (health endpoint, status)
+- [x] **Portfolio UX** — /health endpoint, browser health check, Step 14 timeline, dual-env footer ✅
 
 ## Observability on AWS — Done
 

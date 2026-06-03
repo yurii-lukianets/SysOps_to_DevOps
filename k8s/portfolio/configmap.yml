@@ -280,12 +280,18 @@ data:
         <div class="topbar-inner">
           <span>yurii-lukianets / portfolio</span>
           <div class="topbar-right">
-            <span class="live-dot">all systems operational</span>
+            <span class="live-dot" id="status-dot">all systems operational</span>
             <span>ai-devops.pp.ua</span>
           </div>
         </div>
       </div>
     </div>
+    <script>
+    fetch('/health').then(r=>{if(!r.ok)throw Error()}).catch(()=>{
+      document.getElementById('status-dot').style.color='#f87171';
+      document.getElementById('status-dot').textContent='degraded';
+    });
+    </script>
     
     <div class="wrap">
     
@@ -447,6 +453,13 @@ data:
               <div class="step-desc">Cloudflare WAF · iptables (only CF IPs on 80/443) · CrowdSec 780 scenarios · GoAccess GeoIP analytics · Auto-ban live</div>
             </div>
           </div>
+          <div class="step">
+            <span class="step-num">14</span>
+            <div class="step-body">
+              <div class="step-title">AWS K3s Deployment <span class="badge live">live</span></div>
+              <div class="step-desc">EC2 t3.micro (1GB RAM) · Terraform + EIP · cert-manager TLS · SG locked to Cloudflare · S3 state backend · Prometheus + node-exporter</div>
+            </div>
+          </div>
         </div>
       </section>
     
@@ -478,8 +491,8 @@ data:
       </section>
     
       <footer>
-        <span>Deployed via ArgoCD GitOps · K3s · HTTPS by Let's Encrypt</span>
-        <span>Cloudflare WAF · CrowdSec · TLS 1.3</span>
+        <span>Deployed on AWS K3s + Local K3s · HTTPS by Let's Encrypt</span>
+        <span>Cloudflare WAF · TLS 1.3 · Prometheus</span>
       </footer>
     
     </div>

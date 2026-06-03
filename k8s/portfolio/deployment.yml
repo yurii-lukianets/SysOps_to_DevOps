@@ -12,38 +12,43 @@ spec:
     metadata:
       labels:
         app: portfolio
-spec:
-  containers:
-    - name: nginx
-      image: nginx:alpine
-      ports:
-        - containerPort: 80
-      resources:
-        limits:
-          cpu: 100m
-          memory: 128Mi
-        requests:
-          cpu: 50m
-          memory: 64Mi
-      livenessProbe:
-        httpGet:
-          path: /
-          port: 80
-        initialDelaySeconds: 30
-        periodSeconds: 10
-      readinessProbe:
-        httpGet:
-          path: /
-          port: 80
-        initialDelaySeconds: 5
-        periodSeconds: 5
-      volumeMounts:
+    spec:
+      containers:
+        - name: nginx
+          image: nginx:alpine
+          ports:
+            - containerPort: 80
+          resources:
+            limits:
+              cpu: 100m
+              memory: 128Mi
+            requests:
+              cpu: 50m
+              memory: 64Mi
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          volumeMounts:
+            - name: html
+              mountPath: /usr/share/nginx/html
+            - name: nginx-config
+              mountPath: /etc/nginx/conf.d
+      volumes:
         - name: html
-          mountPath: /usr/share/nginx/html
-  volumes:
-    - name: html
-      configMap:
-        name: portfolio-html
+          configMap:
+            name: portfolio-html
+        - name: nginx-config
+          configMap:
+            name: nginx-config
 ---
 apiVersion: v1
 kind: Service
