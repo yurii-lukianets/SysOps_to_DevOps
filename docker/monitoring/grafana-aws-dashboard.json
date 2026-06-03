@@ -1,0 +1,260 @@
+{
+  "__inputs": [],
+  "__requires": [],
+  "title": "AWS K3s — System",
+  "version": 1,
+  "uid": "aws-k3s-system",
+  "tags": ["aws", "k3s"],
+  "schemaVersion": 39,
+  "timezone": "browser",
+  "editable": true,
+  "graphTooltip": 0,
+  "panels": [
+    {
+      "id": 1,
+      "title": "Memory",
+      "type": "stat",
+      "gridPos": {"x": 0, "y": 0, "w": 4, "h": 3},
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "rgba(74,158,255,0.85)", "value": null},
+              {"color": "rgba(234,179,8,0.85)", "value": 2147483648}
+            ]
+          },
+          "color": {"mode": "thresholds"}
+        }
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "sparkline",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "targets": [{
+        "expr": "node_memory_MemTotal_bytes{instance=~\".*observability.*\"}",
+        "legendFormat": "Total",
+        "instant": true
+      }]
+    },
+    {
+      "id": 2,
+      "title": "Available",
+      "type": "stat",
+      "gridPos": {"x": 4, "y": 0, "w": 4, "h": 3},
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "rgba(74,222,128,0.85)", "value": null},
+              {"color": "rgba(234,179,8,0.85)", "value": 157286400},
+              {"color": "rgba(248,113,113,0.85)", "value": 52428800}
+            ]
+          },
+          "color": {"mode": "thresholds"}
+        }
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "sparkline",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "targets": [{
+        "expr": "node_memory_MemAvailable_bytes{instance=~\".*observability.*\"}",
+        "legendFormat": "Available",
+        "instant": true
+      }]
+    },
+    {
+      "id": 3,
+      "title": "Swap Used",
+      "type": "stat",
+      "gridPos": {"x": 8, "y": 0, "w": 4, "h": 3},
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "rgba(74,222,128,0.85)", "value": null},
+              {"color": "rgba(234,179,8,0.85)", "value": 1073741824},
+              {"color": "rgba(248,113,113,0.85)", "value": 2147483648}
+            ]
+          },
+          "color": {"mode": "thresholds"}
+        }
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "sparkline",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "targets": [{
+        "expr": "(node_memory_SwapTotal_bytes{instance=~\".*observability.*\"} - node_memory_SwapFree_bytes{instance=~\".*observability.*\"})",
+        "legendFormat": "Swap used",
+        "instant": true
+      }]
+    },
+    {
+      "id": 4,
+      "title": "Memory Usage",
+      "type": "timeseries",
+      "gridPos": {"x": 12, "y": 0, "w": 12, "h": 6},
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]},
+          "color": {"mode": "palette-classic"}
+        }
+      },
+      "options": {
+        "legend": {"calcs": ["lastNotNull"], "displayMode": "table", "placement": "bottom"},
+        "tooltip": {"mode": "multi"}
+      },
+      "targets": [
+        {"expr": "node_memory_Active_bytes{instance=~\".*observability.*\"}", "legendFormat": "Active"},
+        {"expr": "node_memory_MemAvailable_bytes{instance=~\".*observability.*\"}", "legendFormat": "Available"},
+        {"expr": "node_memory_SwapTotal_bytes{instance=~\".*observability.*\"} - node_memory_SwapFree_bytes{instance=~\".*observability.*\"}", "legendFormat": "Swap used"}
+      ]
+    },
+    {
+      "id": 5,
+      "title": "CPU Load",
+      "type": "timeseries",
+      "gridPos": {"x": 0, "y": 6, "w": 12, "h": 5},
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "orange", "value": 2}]},
+          "color": {"mode": "palette-classic"}
+        }
+      },
+      "options": {
+        "legend": {"calcs": ["lastNotNull"], "displayMode": "table", "placement": "bottom"},
+        "tooltip": {"mode": "multi"}
+      },
+      "targets": [
+        {"expr": "node_load1{instance=~\".*observability.*\"}", "legendFormat": "Load 1m"},
+        {"expr": "node_load5{instance=~\".*observability.*\"}", "legendFormat": "Load 5m"},
+        {"expr": "node_load15{instance=~\".*observability.*\"}", "legendFormat": "Load 15m"}
+      ]
+    },
+    {
+      "id": 6,
+      "title": "Disk Usage (/)",
+      "type": "gauge",
+      "gridPos": {"x": 12, "y": 6, "w": 6, "h": 5},
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "min": 0,
+          "max": 100,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "rgba(74,222,128,0.85)", "value": null},
+              {"color": "rgba(234,179,8,0.85)", "value": 80},
+              {"color": "rgba(248,113,113,0.85)", "value": 90}
+            ]
+          },
+          "color": {"mode": "thresholds"}
+        }
+      },
+      "options": {
+        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false},
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true
+      },
+      "targets": [{
+        "expr": "100 - (node_filesystem_avail_bytes{mountpoint=\"/\",instance=~\".*observability.*\",fstype!=\"\"} / node_filesystem_size_bytes{mountpoint=\"/\",instance=~\".*observability.*\",fstype!=\"\"} * 100)",
+        "legendFormat": "Used"
+      }]
+    },
+    {
+      "id": 7,
+      "title": "Top Memory Consumers",
+      "type": "table",
+      "gridPos": {"x": 0, "y": 11, "w": 24, "h": 6},
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "color": {"mode": "thresholds"},
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "rgba(74,222,128,0.85)", "value": null},
+              {"color": "rgba(234,179,8,0.85)", "value": 10},
+              {"color": "rgba(248,113,113,0.85)", "value": 25}
+            ]
+          }
+        }
+      },
+      "options": {
+        "sortBy": [{"displayName": "MEM%", "desc": true}]
+      },
+      "targets": [{
+        "expr": "topk(8, node_memory_MemTotal_bytes{instance=~\".*observability.*\"})",
+        "format": "table",
+        "instant": true
+      }]
+    },
+    {
+      "id": 8,
+      "title": "Memory Trend (7d)",
+      "type": "timeseries",
+      "gridPos": {"x": 0, "y": 17, "w": 24, "h": 5},
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "color": {"mode": "palette-classic"}
+        }
+      },
+      "options": {
+        "legend": {"calcs": ["mean", "min", "max"], "displayMode": "table", "placement": "bottom"},
+        "tooltip": {"mode": "multi"}
+      },
+      "targets": [
+        {"expr": "node_memory_MemTotal_bytes{instance=~\".*observability.*\"}", "legendFormat": "Total"},
+        {"expr": "node_memory_MemAvailable_bytes{instance=~\".*observability.*\"}", "legendFormat": "Available"},
+        {"expr": "node_memory_MemFree_bytes{instance=~\".*observability.*\"}", "legendFormat": "Free"}
+      ]
+    }
+  ],
+  "refresh": "30s",
+  "time": {"from": "now-1h", "to": "now"},
+  "timepicker": {},
+  "templating": {
+    "list": []
+  },
+  "annotations": {
+    "list": []
+  },
+  "links": [],
+  "style": "dark",
+  "description": "AWS K3s t3.micro system metrics — memory, CPU, disk, swap"
+}
