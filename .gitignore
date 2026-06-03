@@ -4,7 +4,7 @@ argocd.exe
 docs/CHECKLIST.md
 .test_iq_tools
 ARGOCD_GITOPS_ANALYSIS.md
-
+aws/dist
 # Session notes (містять секрети)
 .sonet_free.md
 .cline.md
