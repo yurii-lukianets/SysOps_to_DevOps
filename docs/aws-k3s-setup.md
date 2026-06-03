@@ -20,6 +20,8 @@
 | kubectl з Windows | `~/.kube/config-aws` |
 | Swap | 4GB (подовоєно після OOM fix) |
 | K3s config | `/etc/rancher/k3s/config.yaml` (tls-san, disable, kubelet-arg) |
+| Terraform state | S3 (`sysops-devops-tfstate-056885487909`) + DynamoDB locks |
+| SQLite backup | Daily @ midnight, 7-day retention, ~2.1MB compressed |
 
 ---
 
@@ -617,11 +619,13 @@ kubelet-arg:
 - [x] Обмежити SG тільки на Cloudflare IP ranges (80/443) + ваш IP (22) ✅
 - [x] Додати resource limits та liveness/readiness probes до portfolio deployment ✅
 - [x] K3s memory optimization: 4GB swap, disable metrics-server/local-storage, kubelet-arg ✅
+- [x] Terraform state → S3 + DynamoDB locks ✅
+- [x] SQLite backup (щоденно, cron, retention 7 днів) ✅
+- [x] AWS billing: $0.00 (Free Tier) ✅
 - [ ] Деплой `llm-api` (Windows → AWS не переносимо, llama-server залишається локально)
-- [ ] Перевести Terraform state в S3 (MinIO)
-- [ ] Налаштувати backup etcd
-- [ ] CrowdSec на AWS K3s
-- [ ] Перевірити AWS billing dashboard
+- [x] Observability на AWS (Prometheus + node-exporter) ✅
+- [ ] CrowdSec evaluation на AWS
+- [ ] Portfolio UX покращення
 
 ---
 
@@ -639,3 +643,146 @@ kubelet-arg:
 - **Важливо:** Якщо SSH під'єднується, але зависає на "Entering interactive session" — це OOM. SSH з `-o RequestTTY=no` для аварійного доступу, потім `sudo systemctl stop k3s` та збільште swap.
 - **Важливо:** K3s на t3.micro (1GB RAM) потребує 4GB swap та відключення metrics-server + local-storage для стабільної роботи.
 - **Важливо:** Після зміни `/etc/rancher/k3s/config.yaml` (disable/enable) потрібен `sudo systemctl restart k3s`. Вже існуючі deployments видаляються вручну.
+
+---
+
+## 17. Terraform state в S3
+
+### 17.1 Створення S3 bucket та DynamoDB
+
+```powershell
+# S3 bucket (глобально унікальне ім'я)
+aws s3 mb s3://sysops-devops-tfstate-056885487909 --region eu-north-1
+
+# Versioning для історії state-файлів
+aws s3api put-bucket-versioning `
+  --bucket sysops-devops-tfstate-056885487909 `
+  --versioning-configuration Status=Enabled `
+  --region eu-north-1
+
+# DynamoDB для state locking (PAY_PER_REQUEST — безкоштовно)
+aws dynamodb create-table `
+  --table-name terraform-locks `
+  --attribute-definitions AttributeName=LockID,AttributeType=S `
+  --key-schema AttributeName=LockID,KeyType=HASH `
+  --billing-mode PAY_PER_REQUEST `
+  --region eu-north-1
+```
+
+### 17.2 Зміни в main.tf
+
+```hcl
+# Додано в terraform блок:
+backend "s3" {
+  bucket       = "sysops-devops-tfstate-056885487909"
+  key          = "aws/terraform.tfstate"
+  region       = "eu-north-1"
+  encrypt      = true
+  use_lockfile = true
+}
+```
+
+### 17.3 Міграція state
+
+```powershell
+cd J:\SysOps_to_DevOps\terraform\aws
+terraform init -migrate-state -force-copy
+# State migrated: local terraform.tfstate → S3 ✅
+# Versioning: 4 версії state-файлу
+```
+
+### 17.4 Оновлення Security Group rules
+
+Змінено в `main.tf` для відповідності актуальним налаштуванням:
+
+| Порт | Доступ | CIDR |
+|------|--------|------|
+| 22 (SSH) | Тільки мій IP | `176.36.254.118/32` |
+| 80 (HTTP) | Тільки Cloudflare | 15 IPv4 ranges |
+| 443 (HTTPS) | Тільки Cloudflare | 15 IPv4 ranges |
+| 6443 (K8s API) | Тільки мій IP | `176.36.254.118/32` |
+| 30000-32767 | **Видалено** (не потрібен) | — |
+
+```hcl
+locals {
+  my_ip   = "176.36.254.118/32"
+  cf_ipv4 = ["173.245.48.0/20", "103.21.244.0/22", ... ]
+}
+```
+
+**Важливо:** Після `terraform apply` правила були перезаписані з додаванням `description`. Функціонально змін нема — ті самі IP ranges, що й були налаштовані вручну.
+
+---
+
+## 18. Резервне копіювання SQLite (K3s single-node)
+
+### 18.1 Чому не etcd
+
+K3s на одному node використовує **SQLite** (файл `/var/lib/rancher/k3s/server/db/state.db`), а не etcd. Команда `k3s etcd-snapshot` не працює — повертає `etcd datastore disabled`.
+
+**Розмір бази:** ~9.8MB (незжата), ~2.1MB (gzip).
+
+### 18.2 Скрипт бекапу
+
+**Файл:** `/usr/local/bin/k3s-backup.sh`
+
+```bash
+#!/bin/bash
+BACKUP_DIR=/backups/k3s
+RETENTION=7
+TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+DB=/var/lib/rancher/k3s/server/db/state.db
+
+# Online consistent backup через sqlite3 .backup
+sqlite3 $DB ".backup $BACKUP_DIR/state-$TIMESTAMP.db"
+
+# Стиснення
+gzip -f $BACKUP_DIR/state-$TIMESTAMP.db
+
+# Видалення старих бекапів (залишити тільки RETENTION останніх)
+ls -tp $BACKUP_DIR/state-*.db.gz 2>/dev/null | tail -n +$((RETENTION+1)) | xargs -I {} rm -- {} 2>/dev/null
+
+echo "Backup: state-$TIMESTAMP.db.gz ($(du -h $BACKUP_DIR/state-$TIMESTAMP.db.gz | cut -f1))"
+```
+
+### 18.3 Налаштування
+
+```bash
+sudo mkdir -p /backups/k3s
+sudo chmod +x /usr/local/bin/k3s-backup.sh
+
+# Додати в root crontab (щодня о 00:00):
+(sudo crontab -l 2>/dev/null; echo "0 0 * * * /usr/local/bin/k3s-backup.sh >/dev/null 2>&1") | sudo crontab -
+
+# Перевірка:
+sudo crontab -l
+# 0 0 * * * /usr/local/bin/k3s-backup.sh >/dev/null 2>&1
+
+# Тест:
+sudo /usr/local/bin/k3s-backup.sh
+# Backup: state-20260603-053339.db.gz (2.1M)
+
+ls -lh /backups/k3s/
+# -rw-r--r-- 1 root root 2.1M Jun  3 05:33 state-20260603-053339.db.gz
+```
+
+### 18.4 Відновлення
+
+```bash
+# Зупинити K3s:
+sudo systemctl stop k3s
+
+# Відновити базу з бекапу:
+sudo cp /backups/k3s/state-YYYYMMDD-HHMMSS.db /var/lib/rancher/k3s/server/db/state.db
+# або з gz:
+gunzip -c /backups/k3s/state-YYYYMMDD-HHMMSS.db.gz | sudo tee /var/lib/rancher/k3s/server/db/state.db > /dev/null
+
+# Запустити K3s:
+sudo systemctl start k3s
+
+# Перевірити:
+kubectl get nodes
+kubectl get pods -A
+```
+
+**Важливо:** Бекап робиться через `sqlite3 .backup` — це online бекап без зупинки K3s. Але відновлення потребує зупинки K3s.

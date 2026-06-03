@@ -87,35 +87,32 @@ Personal DevOps learning path built from scratch — from Windows workstation to
 - [x] SQLite automated backup (daily @ midnight, 7-day retention)
 - [x] OOM recovery: 4GB swap, disabled metrics-server/local-storage, kubelet-arg
 - [x] HTTPS live: [https://ai-devops.pp.ua](https://ai-devops.pp.ua) (Cloudflare proxied)
-- [ ] **Observability on AWS** — lightweight Prometheus/node-exporter
+- [x] **Observability on AWS** — Prometheus + node-exporter (minimal, 1GB RAM budget) ✅
 - [ ] Portfolio UX improvements (health endpoint, status)
 
-## Next Steps — Observability on AWS
+## Observability on AWS — Done
 
-The AWS K3s runs on t3.micro (1GB RAM), which is too tight for the full Grafana stack. The plan is a **minimal viable observability** setup:
+| Component | Status | RAM |
+|-----------|--------|-----|
+| Node-exporter (DaemonSet) | **Up** | ~20MB |
+| Prometheus (minimal, retention 7d) | **Up** | ~80-120MB |
+| Total overhead | Stable | ~140MB / 233Mi available |
+| Targets | `node` → `up` ✅ | Scraping every 60s |
 
-### Priority 1: Node-level metrics
-Deploy a single **node-exporter** DaemonSet + lightweight Prometheus scraping itself.
-- No Grafana (too heavy for 1GB RAM)
-- Prometheus in `--storage.tsdb.retention.time=7d` minimal mode
-- Alerts via `amtool` or simple webhook
+**Config:** [`k8s/observability/`](k8s/observability/)
 
-### Priority 2: K3s control-plane metrics
-Scrape K3s `/metrics` endpoints (apiserver, controller-manager, scheduler, kubelet).
-- Already exposed by default
-- Prometheus additional scrape targets
+### Next: Portfolio UX
+- Add `/health` endpoint (nginx stub_status or custom)
+- Status banner showing cluster health
+- Prometheus metrics endpoint for portfolio
 
-### Priority 3: Application metrics
-Add a `/metrics` endpoint to portfolio (nginx → stub_status + custom).
-- Track requests, errors, latency
+### Later: Expand observability
+- Scrape K3s control-plane metrics (needs auth setup)
+- Add nginx metrics (stub_status → Prometheus)
+- Evaluate CrowdSec on AWS (resource-dependent)
+- Push to local Grafana via remote write (centralized dashboards)
 
-### Priority 4: Verify vs. local stack
-Compare resource cost vs. benefit — if Prometheus alone is too heavy, consider:
-- Host-level `collectd` + CloudWatch
-- Push to local Grafana via remote write (centralized dashboard)
-- Or skip AWS observability and rely on Cloudflare analytics + AWS CloudWatch
-
-Details → [`docs/observability-aws.md`](docs/observability-aws.md) (planned)
+Details → [`docs/observability-aws.md`](docs/observability-aws.md)
 
 ---
 
