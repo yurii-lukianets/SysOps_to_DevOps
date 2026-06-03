@@ -461,9 +461,23 @@ curl.exe -I https://ai-devops.pp.ua/
 - [x] Деплой portfolio + cert-manager ✅
 - [x] TLS cert issued ✅
 - [x] HTTPS через Cloudflare працює ✅
+- [x] Обмежити SG тільки на Cloudflare IP ranges (80/443) + ваш IP (22) ✅
+- [x] Додати resource limits та liveness/readiness probes до portfolio deployment ✅
 - [ ] Деплой `llm-api` (Windows → AWS не переносимо, llama-server залишається локально)
 - [ ] Перевести Terraform state в S3 (MinIO)
 - [ ] Налаштувати backup etcd
-- [ ] Обмежити SG тільки на Cloudflare IP ranges
 - [ ] CrowdSec на AWS K3s
 - [ ] Перевірити AWS billing dashboard
+
+---
+
+## 12. Важливі нотатки (Important)
+
+- **Важливо:** Не зупиняйте EC2-інстанс без попереднього розв'язку EIP — інакше платитимете $0.005/год за незакріплений EIP.
+- **Важливо:** AWS Free Tier t3.micro доступний, поки не вичерпано ліміт 750 год/міс. Моніторте через AWS Billing Dashboard.
+- **Важливо:** Ніколи не фіксуйте AWS-ключі в git. Використовуйте `.gitignore` та перевіряйте історію перед push.
+- **Важливо:** kubectl з Windows — переконайтеся, що `KUBECONFIG` вказує на `config-aws` з сервером `13.49.255.149:6443`.
+- **Важливо:** Klipper-lb балансер працює тільки з приватним IP EC2 (`172.31.39.148`). Не змінюйте `loadBalancerIP` на публічний EIP.
+- **Важливо:** Після змін у security group тестуйте SSH з'єднання з вашої IP, щоб не заблокувати собі доступ.
+- **Важливо:** Deployment portfolio тепер має resource limits (cpu:100m/50m, memory:128Mi/64Mi) та liveness/readiness probes.
+- **Важливо:** Перевіряйте, що `certificate portfolio-tls` у стані `Ready=True` перед використанням HTTPS.
