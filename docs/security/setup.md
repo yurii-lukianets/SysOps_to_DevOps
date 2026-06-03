@@ -17,6 +17,13 @@
 - Updates: every 5 min via cron
 - GeoIP: DB-IP country database
 
+## CrowdSec Verdict (AWS)
+
+**CrowdSec on t3.micro — not viable.** Requires ~120-200MB additional RAM; only ~100-283Mi available after K3s + Prometheus.
+
+→ AWS uses **Fail2ban** (SSH jail, ~20MB RAM) instead.
+→ SG already locked to Cloudflare IPs for 80/443.
+
 ## Maintenance
 sudo cscli alerts list
 sudo cscli decisions list

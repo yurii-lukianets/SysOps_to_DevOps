@@ -24,7 +24,7 @@ Personal DevOps learning path built from scratch — from Windows workstation to
 | Local LLM | Qwen3-35B via llama.cpp (RTX 3050) | Local (Windows) |
 | LLM API | FastAPI (Python) + Docker | Local |
 | Container Registry | GHCR | Both |
-| Security | Cloudflare WAF + iptables + CrowdSec | Both |
+| Security | Cloudflare WAF + iptables + CrowdSec (local) / Fail2ban (AWS) | Both |
 | Traffic Analytics | GoAccess + GeoIP | Local |
 | Cloud Provider | AWS (eu-north-1, Free Tier) | AWS |
 | Terraform State | S3 + DynamoDB locks | AWS |
@@ -109,7 +109,7 @@ Personal DevOps learning path built from scratch — from Windows workstation to
 ### Later: Expand observability
 - Scrape K3s control-plane metrics (needs auth setup)
 - Add nginx metrics (stub_status → Prometheus)
-- Evaluate CrowdSec on AWS (resource-dependent)
+- ❌ CrowdSec on AWS — not viable on t3.micro (1GB RAM). Use Fail2ban instead.
 - Push to local Grafana via remote write (centralized dashboards)
 
 Details → [`docs/observability-aws.md`](docs/observability-aws.md)
@@ -139,6 +139,7 @@ Full parameter sweep → [`llm-api/docs/benchmark-results.md`](llm-api/docs/benc
 
 ## Security Stack
 
+### Local cluster
 ```
 Internet → Cloudflare WAF → iptables → Traefik → CrowdSec → Services
 ```
@@ -152,6 +153,11 @@ Internet → Cloudflare WAF → iptables → Traefik → CrowdSec → Services
 | Analytics | GoAccess + GeoIP | Traffic dashboard, bot detection |
 
 Bans detected in first hour: CVE-2017-9841, ThinkPHP RCE, WordPress scan, HTTP probing
+
+### AWS K3s (t3.micro)
+- **Restricted SG:** 22/6443 only from my IP; 80/443 only from Cloudflare IPs
+- **Fail2ban:** SSH jail — 3 failed attempts → 24h ban (~20MB RAM)
+- **CrowdSec verdict:** ❌ Not viable on t3.micro (requires ~120-200MB RAM, only ~100-283Mi available)
 
 Details → [`docs/security/setup.md`](docs/security/setup.md)
 

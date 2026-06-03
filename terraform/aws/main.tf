@@ -95,11 +95,35 @@ resource "aws_key_pair" "k3s" {
   }
 }
 
+# SSM Session Manager access
+resource "aws_iam_role" "k3s_ssm" {
+  name = "k3s-ssm-role"
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect    = "Allow"
+      Principal = { Service = "ec2.amazonaws.com" }
+      Action    = "sts:AssumeRole"
+    }]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "k3s_ssm" {
+  role       = aws_iam_role.k3s_ssm.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+}
+
+resource "aws_iam_instance_profile" "k3s_ssm" {
+  name = "k3s-ssm-profile"
+  role = aws_iam_role.k3s_ssm.name
+}
+
 resource "aws_instance" "k3s" {
   ami                    = data.aws_ami.ubuntu_2204.id
   instance_type          = "t3.micro"
   vpc_security_group_ids = [aws_security_group.k3s.id]
   key_name               = aws_key_pair.k3s.key_name
+  iam_instance_profile   = aws_iam_instance_profile.k3s_ssm.name
 
   root_block_device {
     volume_size = 20

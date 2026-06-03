@@ -28,7 +28,9 @@
 
   ### Security Stack
   A layered defense strategy:
-  `Cloudflare (WAF/Edge) -> iptables (Network filtering) -> Traefik (Ingress) -> CrowdSec (Behavioral Analysis)`
+  `Cloudflare (WAF/Edge) -> iptables (Network filtering) -> Traefik (Ingress) -> CrowdSec (Local) / Fail2ban (AWS)`
+  - **Local:** CrowdSec + firewall-bouncer (780 scenarios)
+  - **AWS (t3.micro):** Fail2ban SSH jail (~20MB). CrowdSec not viable on t3.micro.
 
   ## Common Commands
 
