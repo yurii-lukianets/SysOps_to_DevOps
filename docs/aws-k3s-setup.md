@@ -1,6 +1,6 @@
 # AWS K3s Setup — Step-by-Step Log
 
-**Дата:** 2026-06-02
+**Дата:** 2026-06-02 — 2026-06-03
 **Region:** eu-north-1 (Stockholm)
 **Free Tier only:** t3.micro (2 vCPU, 1GB RAM)
 
@@ -18,6 +18,8 @@
 | Key Pair | `k3s-key` (~/.ssh/aws_k3s) |
 | K3s version | v1.35.5+k3s1 |
 | kubectl з Windows | `~/.kube/config-aws` |
+| Swap | 4GB (подовоєно після OOM fix) |
+| K3s config | `/etc/rancher/k3s/config.yaml` (tls-san, disable, kubelet-arg) |
 
 ---
 
@@ -280,6 +282,14 @@ Swap:  2.0Gi total, ~260Mi used
 Disk:  ~3GB used (Ubuntu + K3s)
 ```
 
+**Після оптимізації (13. OOM fix):**
+```
+Mem:    913Mi total, ~527Mi used (без metrics-server та local-storage)
+Swap:  4.0Gi total, ~408Mi used
+Disk:  ~5.6GB used (+ portfolio + cert-manager)
+Load:  ~2.30 (було 5+ до оптимізації)
+```
+
 **Free Tier budget:**
 - t3.micro: 750 год/міс безкоштовно (12 міс)
 - EBS gp2 20GB: 30GB безкоштовно
@@ -456,13 +466,157 @@ curl.exe -I https://ai-devops.pp.ua/
 
 ---
 
-## 11. Наступні кроки
+## 13. Криза: K3s OOM на t3.micro (1GB RAM)
+
+### 13.1 Симптоми
+
+Після деплою cert-manager + portfolio на t3.micro система почала "зависати" через 5-10 хвилин після старту:
+
+- **SSH**: TCP connect проходить, аутентифікація успішна (publickey), але зависає на `Entering interactive session`
+- **kube-apiserver (6443)**: Read timeout
+- **HTTPS (443)**: Read timeout
+- **System load**: `load average: 5.17` (1 vCPU — це 517% навантаження)
+- **Пам'ять**: 913Mi total, 620Mi used, 60Mi free, 569Mi swap used (2GB)
+
+### 13.2 Діагностика
+
+```bash
+# SSH з примусовим нетермінальним режимом (обходить зависання):
+ssh -o RequestTTY=no ubuntu@13.49.255.149 "free -h; uptime; df -h"
+
+# Результат:
+# Mem:  913Mi total, 620Mi used, 60Mi free
+# Swap: 2.0Gi, 569Mi used
+# Load: 5.17
+# Disk: 20G, 5.6G used — диск ok
+```
+
+**Причина:** K3s (core process ~300-400MB) + Traefik + coredns + metrics-server + local-storage + cert-manager (3 pods) + portfolio (nginx) = значно більше 1GB RAM. Система йде в swap, load зростає, kubelet не може форкнути процеси, вся комунікація блокується.
+
+### 13.3 First Aid: stop/start EC2 + збільшення swap
+
+```bash
+# З Windows:
+aws ec2 stop-instances --instance-ids i-066bd0dac0f09cb74 --region eu-north-1
+# Чекаємо stopped, потім:
+aws ec2 start-instances --instance-ids i-066bd0dac0f09cb74 --region eu-north-1
+
+# Чекаємо ~30 секунд, SSH:
+ssh -o RequestTTY=no ubuntu@13.49.255.149
+
+# Негайно зупинити K3s (поки не з'їв всю пам'ять):
+sudo systemctl stop k3s
+
+# Збільшити swap з 2GB → 4GB:
+sudo swapoff -a
+sudo fallocate -l 4G /swapfile
+sudo chmod 600 /swapfile
+sudo mkswap /swapfile
+sudo swapon /swapfile
+# fstab вже має /swapfile — оновлювати не треба
+```
+
+### 13.4 Оптимізація K3s config
+
+**До:**
+```yaml
+# /etc/rancher/k3s/config.yaml
+tls-san:
+  - 13.49.255.149
+```
+
+**Після:**
+```yaml
+# /etc/rancher/k3s/config.yaml
+tls-san:
+  - 13.49.255.149
+disable:
+  - metrics-server
+  - local-storage
+kubelet-arg:
+  - system-reserved=memory=256Mi
+  - kube-reserved=memory=256Mi
+  - eviction-hard=memory.available<100Mi
+```
+
+### 13.5 Видалення вже запущених компонентів
+
+```bash
+# Disable в config.yaml не видаляє вже запущені деплої — видаляємо вручну:
+kubectl delete deploy metrics-server -n kube-system
+kubectl delete deploy local-path-provisioner -n kube-system
+```
+
+### 13.6 Перевірка після restart
+
+```bash
+sudo systemctl restart k3s
+sleep 20
+kubectl get pods -A
+# Має бути: coredns, traefik, svclb-traefik, cert-manager (3), portfolio
+# Не має бути: metrics-server, local-path-provisioner
+
+free -h
+# Mem:  913Mi, ~527Mi used, 229Mi available
+# Swap: 4.0Gi, ~408Mi used
+# Load: ~2.30 (стабільно)
+
+# HTTPS:
+curl -sI https://ai-devops.pp.ua/
+# HTTP/1.1 200 OK ✅
+```
+
+---
+
+## 14. Фінальний склад системи (після оптимізації)
+
+### Працюючі компоненти
+
+| Компонент | Призначення | RAM |
+|-----------|-------------|-----|
+| K3s server | Kubernetes control plane | ~350MB |
+| Traefik | Ingress controller (https, routing) | ~50MB |
+| svclb-traefik | Klipper LoadBalancer (hostPort 80/443) | ~20MB |
+| coredns | DNS всередині кластера | ~20MB |
+| cert-manager | TLS сертифікати (auto-renewal) | ~40MB |
+| cert-manager-cainjector | CA injection для webhooks | ~15MB |
+| cert-manager-webhook | ACME HTTP-01 challenge handler | ~15MB |
+| portfolio (nginx) | Основний сайт | ~15MB |
+
+**Всього:** ~525MB used / 913MB total + 4GB swap
+
+### Вимкнено (економія ~100MB)
+
+| Компонент | Причина |
+|-----------|---------|
+| metrics-server | Економить ~40MB, не критично для моніторингу |
+| local-path-provisioner | Економить ~30MB, PVC поки не використовуються |
+
+### Конфігурація K3s
+
+```yaml
+# /etc/rancher/k3s/config.yaml — актуальний
+tls-san:
+  - 13.49.255.149
+disable:
+  - metrics-server
+  - local-storage
+kubelet-arg:
+  - system-reserved=memory=256Mi    # резерв для systemd, ssh, моніторингу
+  - kube-reserved=memory=256Mi      # резерв для K3s/kubelet
+  - eviction-hard=memory.available<100Mi  # evict подів при нестачі RAM
+```
+
+---
+
+## 15. Наступні кроки
 
 - [x] Деплой portfolio + cert-manager ✅
 - [x] TLS cert issued ✅
 - [x] HTTPS через Cloudflare працює ✅
 - [x] Обмежити SG тільки на Cloudflare IP ranges (80/443) + ваш IP (22) ✅
 - [x] Додати resource limits та liveness/readiness probes до portfolio deployment ✅
+- [x] K3s memory optimization: 4GB swap, disable metrics-server/local-storage, kubelet-arg ✅
 - [ ] Деплой `llm-api` (Windows → AWS не переносимо, llama-server залишається локально)
 - [ ] Перевести Terraform state в S3 (MinIO)
 - [ ] Налаштувати backup etcd
@@ -471,7 +625,7 @@ curl.exe -I https://ai-devops.pp.ua/
 
 ---
 
-## 12. Важливі нотатки (Important)
+## 16. Важливі нотатки (Important)
 
 - **Важливо:** Не зупиняйте EC2-інстанс без попереднього розв'язку EIP — інакше платитимете $0.005/год за незакріплений EIP.
 - **Важливо:** AWS Free Tier t3.micro доступний, поки не вичерпано ліміт 750 год/міс. Моніторте через AWS Billing Dashboard.
@@ -481,3 +635,7 @@ curl.exe -I https://ai-devops.pp.ua/
 - **Важливо:** Після змін у security group тестуйте SSH з'єднання з вашої IP, щоб не заблокувати собі доступ.
 - **Важливо:** Deployment portfolio тепер має resource limits (cpu:100m/50m, memory:128Mi/64Mi) та liveness/readiness probes.
 - **Важливо:** Перевіряйте, що `certificate portfolio-tls` у стані `Ready=True` перед використанням HTTPS.
+- **Важливо:** Після stop/start EC2-інстансу дочекайтеся ~30 секунд, поки k3s повністю завантажиться, і тільки тоді тестуйте HTTPS.
+- **Важливо:** Якщо SSH під'єднується, але зависає на "Entering interactive session" — це OOM. SSH з `-o RequestTTY=no` для аварійного доступу, потім `sudo systemctl stop k3s` та збільште swap.
+- **Важливо:** K3s на t3.micro (1GB RAM) потребує 4GB swap та відключення metrics-server + local-storage для стабільної роботи.
+- **Важливо:** Після зміни `/etc/rancher/k3s/config.yaml` (disable/enable) потрібен `sudo systemctl restart k3s`. Вже існуючі deployments видаляються вручну.
