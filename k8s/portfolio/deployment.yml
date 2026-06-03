@@ -37,13 +37,13 @@ spec:
           port: 80
         initialDelaySeconds: 5
         periodSeconds: 5
-          volumeMounts:
-            - name: html
-              mountPath: /usr/share/nginx/html
-      volumes:
+      volumeMounts:
         - name: html
-          configMap:
-            name: portfolio-html
+          mountPath: /usr/share/nginx/html
+  volumes:
+    - name: html
+      configMap:
+        name: portfolio-html
 ---
 apiVersion: v1
 kind: Service
