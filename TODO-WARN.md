@@ -16,6 +16,11 @@
 - [ ] `terraform/docker-stack/terraform.tfstate` — exists locally but gitignored (state uses MinIO backend).
 - [ ] `.continue/` — empty IDE extension dir, not tracked.
 
+## ✅ Done this session
+- [x] **Fail2ban** встановлено на AWS (t3.micro) — SSH jail, 3 спроби → 24h ban, ~20MB RAM
+- [x] **OOM recovery** — stop/start інстанса, тепер 283Mi available
+- [x] **Housekeeping** — `.gitignore` fix, `.gitattributes`, файли рознесено
+
 ## 📝 IDE / git config
 - [ ] `.claude/settings.local.json` — local settings file, now in `.gitignore`.
 - [ ] `.gitattributes` added for line ending normalization — run `git add --renormalize .` if switching branches.
