@@ -6,5 +6,6 @@ services:
   monitoring:
     dir: "{{ project_base_dir }}/monitoring"
 
+# Set env GRAFANA_PASSWORD to override, or keep default for local dev
 grafana_admin_password: devops123
 prometheus_port: 9091

@@ -89,28 +89,33 @@ Personal DevOps learning path built from scratch — from Windows workstation to
 - [x] HTTPS live: [https://ai-devops.pp.ua](https://ai-devops.pp.ua) (Cloudflare proxied)
 - [x] **Observability on AWS** — Prometheus + node-exporter (minimal, 1GB RAM budget) ✅
 - [x] **Portfolio UX** — /health endpoint, browser health check, Step 14 timeline, dual-env footer ✅
+- [x] **AWS → local Grafana** — SSH tunnel federation, 8-panel system dashboard ✅
 
-## Observability on AWS — Done
+## Observability on AWS — Centralized Dashboard
 
-| Component | Status | RAM |
-|-----------|--------|-----|
+AWS node metrics flow into the **local Grafana** via Prometheus federation over SSH tunnel:
+
+```
+AWS node-exporter (t3.micro)
+  → AWS Prometheus (10.43.1.187:9090)
+  → SSH tunnel (tst@192.168.100.203:9092)
+  → Local Prometheus (172.17.0.1:9092 → /federate)
+  → Local Grafana dashboard (http://192.168.100.203:3000, uid: aws-k3s-system)
+```
+
+| AWS Component | Status | RSS |
+|---------------|--------|-----|
 | Node-exporter (DaemonSet) | **Up** | ~20MB |
 | Prometheus (minimal, retention 7d) | **Up** | ~80-120MB |
-| Total overhead | Stable | ~140MB / 233Mi available |
-| Targets | `node` → `up` ✅ | Scraping every 60s |
+| Total overhead | Stable | ~140MB |
+| Available RAM (avg) | 🔶 ~145Mi | 108–188Mi range |
 
-**Config:** [`k8s/observability/`](k8s/observability/)
+**Warning:** t3.micro (913Mi total) is near capacity. Available RAM often dips below 120Mi.
+K3s housekeeping lags (5s instead of 1s) under load. Monitor `/var/log/mem-track.csv` for trend.
 
-### Next: Portfolio UX
-- Add `/health` endpoint (nginx stub_status or custom)
-- Status banner showing cluster health
-- Prometheus metrics endpoint for portfolio
-
-### Later: Expand observability
-- Scrape K3s control-plane metrics (needs auth setup)
-- Add nginx metrics (stub_status → Prometheus)
-- ❌ CrowdSec on AWS — not viable on t3.micro (1GB RAM). Use Fail2ban instead.
-- Push to local Grafana via remote write (centralized dashboards)
+**Local config:** [`docker/monitoring/prometheus.yml`](docker/monitoring/prometheus.yml)
+**Dashboard:** [`docker/monitoring/grafana-aws-dashboard.json`](docker/monitoring/grafana-aws-dashboard.json)
+**Tunnel script:** [`scripts/aws-tunnel.sh`](scripts/aws-tunnel.sh)
 
 Details → [`docs/observability-aws.md`](docs/observability-aws.md)
 

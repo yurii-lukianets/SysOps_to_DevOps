@@ -32,6 +32,12 @@
   - **Local:** CrowdSec + firewall-bouncer (780 scenarios)
   - **AWS (t3.micro):** Fail2ban SSH jail (~20MB). CrowdSec not viable on t3.micro.
 
+  ### Monitoring Pipeline (AWS -> Local)
+  - **SSH tunnel:** local server `192.168.100.203:9092` -> AWS Prometheus `10.43.1.187:9090`
+  - **Federation:** local Prometheus scrapes `/federate` every 60s
+  - **Grafana:** dashboard `AWS K3s - System` (uid: aws-k3s-system)
+  - **Scripts:** `scripts/aws-tunnel.sh`, `scripts/mem-track.sh`
+
   ## Common Commands
 
   ### Testing & Validation

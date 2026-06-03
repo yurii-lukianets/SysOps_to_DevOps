@@ -8,6 +8,7 @@ terraform {
       s3 = "http://192.168.100.203:9002"
     }
 
+    # Local MinIO — override via env: AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY
     access_key = "minioadmin"
     secret_key = "minioadmin123"
 
