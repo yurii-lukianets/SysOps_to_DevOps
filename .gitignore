@@ -18,3 +18,6 @@ k8s/kubeconfig-lab
 
 # Local IDE settings
 .claude/settings.local.json
+
+# Operational docs (local only — містять IP, ID, шляхи)
+HOW-TO.md
