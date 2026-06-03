@@ -1,17 +1,20 @@
 __pycache__/
 *.pyc
-__pycache__/
-*.pyc
 argocd.exe
-CLAUD.md
-docs\CHECKLIST.md
+docs/CHECKLIST.md
 .test_iq_tools
 ARGOCD_GITOPS_ANALYSIS.md
-aws/
-terraform/aws/
 
 # Session notes (містять секрети)
 .sonet_free.md
 .cline.md
 .sonet_*.md
 .cline_*.md
+continue.md
+docs/aws-k3s-setup.md
+
+# Cluster credentials
+k8s/kubeconfig-lab
+
+# Local IDE settings
+.claude/settings.local.json

@@ -3,13 +3,3 @@
 terraform.tfstate
 terraform.tfstate.backup
 *.tfvars
-.test_iq_tools
-docs\CHECKLIST.md
-.*
-.cline.md
-.sonet_free.md
-CLAUDE.md
-continue.md
-ARGOCD_GITOPS_ANALYSIS.md
-docs\kubectl-setup-windows.md
-docs\aws-k3s-setup.md
