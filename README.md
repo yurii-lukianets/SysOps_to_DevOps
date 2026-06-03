@@ -1,32 +1,34 @@
 # SysOps to DevOps
 
-Personal DevOps learning path built from scratch — from Windows workstation to production Kubernetes with self-hosted LLM inference, full GitOps pipeline, real-time observability, and production security.
+Personal DevOps learning path built from scratch — from Windows workstation to production-grade infrastructure spanning two environments: a local K3s cluster (Ubuntu 22.04) and an AWS K3s cluster (EC2 t3.micro, Free Tier).
 
 ## Live
 
-| Endpoint | Description |
-|----------|-------------|
-| [https://ai-devops.pp.ua](https://ai-devops.pp.ua) | Portfolio — ArgoCD GitOps |
-| [https://llm.ai-devops.pp.ua](https://llm.ai-devops.pp.ua) | Self-hosted LLM API — Qwen3-35B |
+| Endpoint | Description | Platform |
+|----------|-------------|----------|
+| [https://ai-devops.pp.ua](https://ai-devops.pp.ua) | Portfolio — TLS, Cloudflare WAF | AWS K3s |
+| [https://llm.ai-devops.pp.ua](https://llm.ai-devops.pp.ua) | Self-hosted LLM API — Qwen3-35B | Local K3s (RTX 3050) |
 
 ## Stack
 
-| Category | Technology |
-|----------|------------|
-| Container Orchestration | K3s v1.35 on Ubuntu 22.04 |
-| GitOps / CD | ArgoCD v3.4.2 |
-| Ingress | Traefik (built-in K3s) |
-| TLS | cert-manager + Let's Encrypt |
-| CI/CD | GitHub Actions + self-hosted runner |
-| IaC | Ansible + Terraform |
-| Monitoring | Prometheus + Grafana + node-exporter |
-| Object Storage | MinIO (S3-compatible, Terraform backend) |
-| Local LLM | Qwen3-35B via llama.cpp (RTX 3050, 8GB VRAM) |
-| LLM API | FastAPI (Python) + Docker |
-| Container Registry | GitHub Container Registry (GHCR) |
-| Security | Cloudflare WAF + iptables + CrowdSec |
-| Traffic Analytics | GoAccess + GeoIP |
-| AI Dev Tools | Claude Code CLI + Continue.dev |
+| Category | Technology | Environment |
+|----------|------------|-------------|
+| Container Orchestration | K3s v1.35 on Ubuntu 22.04 | Local + AWS |
+| GitOps / CD | ArgoCD v3.4.2 | Local |
+| Ingress | Traefik (built-in K3s) | Both |
+| TLS | cert-manager + Let's Encrypt | Both |
+| CI/CD | GitHub Actions + self-hosted runner | Local |
+| IaC | Terraform + Ansible | Both |
+| Monitoring | Prometheus + Grafana + node-exporter | Local |
+| Object Storage | MinIO (S3-compatible) | Local |
+| Local LLM | Qwen3-35B via llama.cpp (RTX 3050) | Local (Windows) |
+| LLM API | FastAPI (Python) + Docker | Local |
+| Container Registry | GHCR | Both |
+| Security | Cloudflare WAF + iptables + CrowdSec | Both |
+| Traffic Analytics | GoAccess + GeoIP | Local |
+| Cloud Provider | AWS (eu-north-1, Free Tier) | AWS |
+| Terraform State | S3 + DynamoDB locks | AWS |
+| AI Dev Tools | Claude Code CLI + Continue.dev | Windows |
 
 ---
 
@@ -73,6 +75,47 @@ Personal DevOps learning path built from scratch — from Windows workstation to
 - [x] CrowdSec — 780 scenarios, auto-ban via firewall bouncer
 - [x] GoAccess traffic analytics + GeoIP dashboard
 - [x] Security docs → [`docs/security/setup.md`](docs/security/setup.md)
+
+### Step 14: AWS K3s deployment (Free Tier)
+- [x] Terraform EC2 + SG + EIP + key pair → [`terraform/aws/`](terraform/aws/)
+- [x] K3s v1.35.5 on t3.micro (1GB RAM + 4GB swap)
+- [x] kubectl from Windows (direct + SSH tunnel)
+- [x] cert-manager + Let's Encrypt TLS
+- [x] Security Group locked to Cloudflare IPs (80/443) + my IP (22/6443)
+- [x] Resource limits + probes on all pods
+- [x] Terraform state migrated to S3 + DynamoDB locking
+- [x] SQLite automated backup (daily @ midnight, 7-day retention)
+- [x] OOM recovery: 4GB swap, disabled metrics-server/local-storage, kubelet-arg
+- [x] HTTPS live: [https://ai-devops.pp.ua](https://ai-devops.pp.ua) (Cloudflare proxied)
+- [ ] **Observability on AWS** — lightweight Prometheus/node-exporter
+- [ ] Portfolio UX improvements (health endpoint, status)
+
+## Next Steps — Observability on AWS
+
+The AWS K3s runs on t3.micro (1GB RAM), which is too tight for the full Grafana stack. The plan is a **minimal viable observability** setup:
+
+### Priority 1: Node-level metrics
+Deploy a single **node-exporter** DaemonSet + lightweight Prometheus scraping itself.
+- No Grafana (too heavy for 1GB RAM)
+- Prometheus in `--storage.tsdb.retention.time=7d` minimal mode
+- Alerts via `amtool` or simple webhook
+
+### Priority 2: K3s control-plane metrics
+Scrape K3s `/metrics` endpoints (apiserver, controller-manager, scheduler, kubelet).
+- Already exposed by default
+- Prometheus additional scrape targets
+
+### Priority 3: Application metrics
+Add a `/metrics` endpoint to portfolio (nginx → stub_status + custom).
+- Track requests, errors, latency
+
+### Priority 4: Verify vs. local stack
+Compare resource cost vs. benefit — if Prometheus alone is too heavy, consider:
+- Host-level `collectd` + CloudWatch
+- Push to local Grafana via remote write (centralized dashboard)
+- Or skip AWS observability and rely on Cloudflare analytics + AWS CloudWatch
+
+Details → [`docs/observability-aws.md`](docs/observability-aws.md) (planned)
 
 ---
 
