@@ -461,10 +461,9 @@ curl.exe -I https://ai-devops.pp.ua/
 - [x] Деплой portfolio + cert-manager ✅
 - [x] TLS cert issued ✅
 - [x] HTTPS через Cloudflare працює ✅
-- [x] Обмежити SG тільки на Cloudflare IP ranges (80/443) + ваш IP (22) ✅
-- [x] Додати resource limits та liveness/readiness probes до portfolio deployment ✅
 - [ ] Деплой `llm-api` (Windows → AWS не переносимо, llama-server залишається локально)
 - [ ] Перевести Terraform state в S3 (MinIO)
 - [ ] Налаштувати backup etcd
+- [ ] Обмежити SG тільки на Cloudflare IP ranges
 - [ ] CrowdSec на AWS K3s
 - [ ] Перевірити AWS billing dashboard
