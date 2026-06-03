@@ -21,3 +21,4 @@ k8s/kubeconfig-lab
 
 # Operational docs (local only — містять IP, ID, шляхи)
 HOW-TO.md
+TODO-WARN.md
