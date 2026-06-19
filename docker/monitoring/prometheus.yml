@@ -22,5 +22,5 @@ scrape_configs:
     scrape_interval: 60s
     scrape_timeout: 10s
     static_configs:
-      - targets: ['172.17.0.1:9101']
+      - targets: ['192.168.100.203:9101']
     metrics_path: /metrics
