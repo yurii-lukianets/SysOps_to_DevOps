@@ -2,8 +2,10 @@
 
 **Дата:** 2026-06-16  
 **Время диагностики:** 06:37 — 11:37 (Europe/Kiev)  
-**Продолжительность простоя:** ~9 дней (с 7 июня 2026)  
-**Статус:** Частично восстановлен (сеть работает, нужен ingress controller)
+**Продолжительность простоя:** ~12 дней (с 7 июня 2026 по 19 июня 2026)  
+**Дата восстановления:** 2026-06-19 07:53 (Europe/Kiev)  
+**Статус:** ✅ Полностью восстановлен (200 OK)  
+**Решение:** nginx (systemd) на EC2 вместо Traefik + мониторинг через SSH tunnel на локальный сервер
 
 ---
 
@@ -117,7 +119,7 @@ ps aux --sort=-%mem | head -10
 - cert-manager: 27MB (2.8%)
 - coredns: 27MB (2.9%)
 
-### 14. Восстановление
+### 14. Восстановление (первичное)
 ```bash
 # Перезагрузка EC2
 aws ec2 reboot-instances --instance-ids i-066bd0dac0f09cb74
@@ -151,7 +153,7 @@ sudo rm -rf /var/lib/rancher/k3s
 | DNS | ✅ OK | Резолвит в Cloudflare |
 | Cloudflare → Origin | ❌ 522→521 | Сеть работает, но нет web server |
 | EC2 State | ✅ running | Инстанс в состоянии running |
-| CPU | ✅ ~7% | Инстанс活着 |
+| CPU | ✅ ~7% | Инстанс жив |
 | SSM Agent | ❌ ConnectionLost | С 7 июня 2026 |
 | HTTP/HTTPS (прямое) | ❌→✅ 521 | Сеть восстановлена после reboot |
 | SSH | ✅ OK | Работает с ключом aws_k3s |
@@ -181,15 +183,19 @@ sudo rm -rf /var/lib/rancher/k3s
 
 ---
 
-## Восстановлено
+## Восстановлено (финальное)
 
-1. ✅ EC2 инстанс перезагружен
+1. ✅ EC2 инстанс перезагружен (stop/start, не reboot)
 2. ✅ Сеть работает (Cloudflare → EC2: port 80/443 open)
 3. ✅ SSH доступен с ключом `C:\Users\LUKAS\.ssh\aws_k3s`
 4. ✅ SSM Agent подключился
-5. ✅ k3s запущен (но API server медленный)
-6. ❌ Нет ingress controller (traefik отключен)
-7. ❌ k3s API server перегружен (не отвечает на kubectl)
+5. ✅ k3s запущен стабильно
+6. ✅ Ingress: nginx (systemd) — заменил Traefik
+7. ✅ HTTPS: 200 OK через Cloudflare
+8. ✅ TLS: Let's Encrypt сертификат (извлечён из cert-manager K8s Secret)
+9. ✅ Prometheus удалён с AWS (экономия ~35MB)
+10. ✅ Мониторинг: node-exporter → SSH tunnel → локальный Prometheus (192.168.100.203)
+11. ✅ Memory: ~200-300Mi available (было ~65Mi)
 
 ---
 
@@ -207,70 +213,50 @@ sudo rm -rf /var/lib/rancher/k3s
 | `aws ssm describe-instance-information` | Проверка SSM Agent |
 | `aws cloudwatch get-metric-statistics` | Проверка CPU метрик |
 | `aws ec2 get-console-output` | Консольный вывод |
-| `aws ec2 reboot-instances` | Перезагрузка EC2 |
+| `aws ec2 stop-instances / start-instances` | Stop/Start EC2 |
+| `aws ec2 authorize-security-group-ingress` | Добавление правила 443 |
 | `ssh` | Подключение к инстансу |
+| `scp` | Копирование файлов |
 | `kubectl` | Управление k3s кластером |
 | `systemctl` | Управление k3s сервисом |
 | `free -h` | Проверка памяти |
 | `ps aux` | Проверка процессов |
+| `nginx` | Reverse proxy для portfolio |
+| `openssl` | Генерация/проверка сертификатов |
+| `python3` | Генерация конфигов (избегая CRLF проблем) |
 
 ---
 
-## Рекомендации
+## Рекомендации (исполнено)
 
-### Проблема: k3s слишком тяжёлый для t3.micro
-
-**Вариант 1: Замена k3s на nginx (рекомендуется)**
-```bash
-# Установка nginx на EC2
-sudo apt update && sudo apt install -y nginx
-sudo systemctl enable nginx
-
-# Настройка reverse proxy для сайта
-# /etc/nginx/sites-available/ai-devops.pp.ua:
-server {
-    listen 80;
-    server_name ai-devops.pp.ua;
-    location / {
-        proxy_pass http://localhost:3000;  # или другой порт приложения
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-    }
-}
-```
-**Потребление памяти:** ~10-20MB (вместо ~700MB)
-
-**Вариант 2: Docker Compose вместо k3s**
-```bash
-# Установка Docker
-curl -fsSL https://get.docker.com | sh
-# Запуск приложения через docker-compose
-docker compose up -d
-```
-**Потребление памяти:** ~50-100MB
-
-**Вариант 3: Оставить k3s, но с minimal конфигурацией**
-- Отключить ВСЕ компоненты кроме API server
-- Deploy только ingress controller + приложение
-- **Риск:** нестабильность из-за нехватки RAM
-
-**Вариант 4: Upgrade до t3.small (2GB RAM)**
-- **Нет** — не входит в бесплатный план AWS
+| Рекомендация | Статус |
+|--------------|--------|
+| Установить nginx на EC2 вместо Traefik | ✅ Выполнено |
+| Настроить reverse proxy на portfolio pod | ✅ Выполнено |
+| Удалить Prometheus с AWS | ✅ Выполнено |
+| Настроить мониторинг через SSH tunnel + локальный Prometheus | ✅ Выполнено |
+| Обновить Security Group (порт 443) | ✅ Выполнено |
+| Установить GOMEMLIMIT=300MiB для k3s | ✅ Выполнено |
+| Использовать Let's Encrypt сертификат (из cert-manager) | ✅ Выполнено |
 
 ---
 
-## Текущее состояние (по состоянию на 11:37)
+## Текущее состояние (финальное, 19 июня 2026 07:53)
 
 | Компонент | Статус |
 |-----------|--------|
 | EC2 | ✅ running |
 | Сеть | ✅ Cloudflare → EC2 работает |
 | SSH | ✅ Доступен |
-| k3s | ⚠️ Запущен, но API перегружен |
-| Ingress | ❌ traefik отключен, nginx не установлен |
-| Сайт | ❌ 521 (Web server is down) |
+| k3s | ✅ Запущен, API отвечает |
+| Ingress | ✅ nginx (systemd) — работает |
+| TLS | ✅ Let's Encrypt (cert-manager → nginx) |
+| Сайт | ✅ 200 OK |
+| Prometheus на AWS | ❌ Удалён |
+| Мониторинг | ✅ node-exporter → SSH tunnel → локальный Prometheus/Grafana |
 
-### Для восстановления сайта необходимо:
-1. Установить nginx на EC2 (или docker)
-2. Настроить reverse proxy на приложение
-3. Убедиться, что приложение (portfolio) запущено
+### Детали восстановления (подробный лог)
+
+Полный пошаговый отчёт о процессе восстановления см. в:
+- [`docs/CheckAndRepare.md`](CheckAndRepare.md) — полный лог диагностики и восстановления
+- [`docs/aws-free-tier-limitations.md`](aws-free-tier-limitations.md) — ограничения Free Tier

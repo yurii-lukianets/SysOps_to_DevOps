@@ -18,13 +18,9 @@ scrape_configs:
     metrics_path: /metrics
     params:
       format: ['prometheus']
-  - job_name: aws-node
+  - job_name: aws-node-exporter
     scrape_interval: 60s
     scrape_timeout: 10s
-    honor_labels: true
-    metrics_path: /federate
-    params:
-      'match[]':
-        - '{job="node"}'
     static_configs:
-      - targets: ['172.17.0.1:9092']
+      - targets: ['172.17.0.1:9101']
+    metrics_path: /metrics

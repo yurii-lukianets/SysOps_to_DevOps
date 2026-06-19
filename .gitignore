@@ -22,3 +22,8 @@ k8s/kubeconfig-lab
 # Operational docs (local only — містять IP, ID, шляхи)
 HOW-TO.md
 TODO-WARN.md
+
+# Generated configs with local IPs
+scripts/portfolio-nginx.conf
+scripts/fix-nginx.py
+REPARE_PLAN.md
