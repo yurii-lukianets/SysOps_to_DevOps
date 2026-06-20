@@ -1,0 +1,783 @@
+{
+  "__inputs": [],
+  "__requires": [],
+  "title": "AWS EC2 — System",
+  "version": 1,
+  "uid": "aws-ec2-system",
+  "tags": ["aws", "ec2", "node-exporter"],
+  "schemaVersion": 39,
+  "timezone": "browser",
+  "editable": true,
+  "graphTooltip": 1,
+  "panels": [
+    {
+      "id": 1,
+      "title": "Uptime",
+      "type": "stat",
+      "gridPos": {"x": 0, "y": 0, "w": 4, "h": 3},
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "color": {"mode": "none"}
+        }
+      },
+      "options": {
+        "colorMode": "none",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false},
+        "textMode": "auto"
+      },
+      "targets": [{
+        "expr": "node_time_seconds{job=\"aws-node-exporter\"} - node_boot_time_seconds{job=\"aws-node-exporter\"}",
+        "legendFormat": "Uptime (s)",
+        "instant": true
+      }]
+    },
+    {
+      "id": 2,
+      "title": "Memory Total",
+      "type": "stat",
+      "gridPos": {"x": 4, "y": 0, "w": 4, "h": 3},
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "color": {"mode": "none"}
+        }
+      },
+      "options": {
+        "colorMode": "none",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false},
+        "textMode": "auto"
+      },
+      "targets": [{
+        "expr": "node_memory_MemTotal_bytes{job=\"aws-node-exporter\"}",
+        "legendFormat": "Total",
+        "instant": true
+      }]
+    },
+    {
+      "id": 3,
+      "title": "Memory Available",
+      "type": "stat",
+      "gridPos": {"x": 8, "y": 0, "w": 4, "h": 3},
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "rgba(74,222,128,0.85)", "value": null},
+              {"color": "rgba(234,179,8,0.85)", "value": 157286400},
+              {"color": "rgba(248,113,113,0.85)", "value": 52428800}
+            ]
+          },
+          "color": {"mode": "thresholds"}
+        }
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "sparkline",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false},
+        "textMode": "auto"
+      },
+      "targets": [{
+        "expr": "node_memory_MemAvailable_bytes{job=\"aws-node-exporter\"}",
+        "legendFormat": "Available",
+        "instant": true
+      }]
+    },
+    {
+      "id": 4,
+      "title": "Swap Used",
+      "type": "stat",
+      "gridPos": {"x": 12, "y": 0, "w": 4, "h": 3},
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "rgba(74,222,128,0.85)", "value": null},
+              {"color": "rgba(234,179,8,0.85)", "value": 1073741824},
+              {"color": "rgba(248,113,113,0.85)", "value": 2147483648}
+            ]
+          },
+          "color": {"mode": "thresholds"}
+        }
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "sparkline",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false},
+        "textMode": "auto"
+      },
+      "targets": [{
+        "expr": "(node_memory_SwapTotal_bytes{job=\"aws-node-exporter\"} - node_memory_SwapFree_bytes{job=\"aws-node-exporter\"})",
+        "legendFormat": "Swap used",
+        "instant": true
+      }]
+    },
+    {
+      "id": 5,
+      "title": "Memory Usage %",
+      "type": "gauge",
+      "gridPos": {"x": 16, "y": 0, "w": 4, "h": 3},
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "min": 0,
+          "max": 100,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "rgba(74,222,128,0.85)", "value": null},
+              {"color": "rgba(234,179,8,0.85)", "value": 80},
+              {"color": "rgba(248,113,113,0.85)", "value": 90}
+            ]
+          },
+          "color": {"mode": "thresholds"}
+        }
+      },
+      "options": {
+        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false},
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true
+      },
+      "targets": [{
+        "expr": "(1 - node_memory_MemAvailable_bytes{job=\"aws-node-exporter\"} / node_memory_MemTotal_bytes{job=\"aws-node-exporter\"}) * 100",
+        "legendFormat": "Used %",
+        "instant": true
+      }]
+    },
+    {
+      "id": 6,
+      "title": "CPU Cores",
+      "type": "stat",
+      "gridPos": {"x": 20, "y": 0, "w": 4, "h": 3},
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "color": {"mode": "none"}
+        }
+      },
+      "options": {
+        "colorMode": "none",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false},
+        "textMode": "auto"
+      },
+      "targets": [{
+        "expr": "count(node_cpu_seconds_total{job=\"aws-node-exporter\",mode=\"system\"})",
+        "legendFormat": "CPU cores",
+        "instant": true
+      }]
+    },
+    {
+      "id": 7,
+      "title": "CPU Load (1m)",
+      "type": "stat",
+      "gridPos": {"x": 0, "y": 3, "w": 4, "h": 3},
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "rgba(74,222,128,0.85)", "value": null},
+              {"color": "rgba(234,179,8,0.85)", "value": 1.5},
+              {"color": "rgba(248,113,113,0.85)", "value": 2.5}
+            ]
+          },
+          "color": {"mode": "thresholds"}
+        }
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "sparkline",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false},
+        "textMode": "auto"
+      },
+      "targets": [{
+        "expr": "node_load1{job=\"aws-node-exporter\"}",
+        "legendFormat": "Load 1m",
+        "instant": true
+      }]
+    },
+    {
+      "id": 8,
+      "title": "CPU Load (5m)",
+      "type": "stat",
+      "gridPos": {"x": 4, "y": 3, "w": 4, "h": 3},
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "rgba(74,222,128,0.85)", "value": null},
+              {"color": "rgba(234,179,8,0.85)", "value": 1.5},
+              {"color": "rgba(248,113,113,0.85)", "value": 2.5}
+            ]
+          },
+          "color": {"mode": "thresholds"}
+        }
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "sparkline",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false},
+        "textMode": "auto"
+      },
+      "targets": [{
+        "expr": "node_load5{job=\"aws-node-exporter\"}",
+        "legendFormat": "Load 5m",
+        "instant": true
+      }]
+    },
+    {
+      "id": 9,
+      "title": "CPU Load (15m)",
+      "type": "stat",
+      "gridPos": {"x": 8, "y": 3, "w": 4, "h": 3},
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "rgba(74,222,128,0.85)", "value": null},
+              {"color": "rgba(234,179,8,0.85)", "value": 1.5},
+              {"color": "rgba(248,113,113,0.85)", "value": 2.5}
+            ]
+          },
+          "color": {"mode": "thresholds"}
+        }
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "sparkline",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false},
+        "textMode": "auto"
+      },
+      "targets": [{
+        "expr": "node_load15{job=\"aws-node-exporter\"}",
+        "legendFormat": "Load 15m",
+        "instant": true
+      }]
+    },
+    {
+      "id": 10,
+      "title": "Disk Usage (/)",
+      "type": "gauge",
+      "gridPos": {"x": 12, "y": 3, "w": 4, "h": 3},
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "min": 0,
+          "max": 100,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "rgba(74,222,128,0.85)", "value": null},
+              {"color": "rgba(234,179,8,0.85)", "value": 80},
+              {"color": "rgba(248,113,113,0.85)", "value": 90}
+            ]
+          },
+          "color": {"mode": "thresholds"}
+        }
+      },
+      "options": {
+        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false},
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true
+      },
+      "targets": [{
+        "expr": "100 - (node_filesystem_avail_bytes{mountpoint=\"/\",job=\"aws-node-exporter\",fstype!=\"\"} / node_filesystem_size_bytes{mountpoint=\"/\",job=\"aws-node-exporter\",fstype!=\"\"} * 100)",
+        "legendFormat": "Used /",
+        "instant": true
+      }]
+    },
+    {
+      "id": 11,
+      "title": "Disk Usage (/var/lib/kubelet)",
+      "type": "gauge",
+      "gridPos": {"x": 16, "y": 3, "w": 4, "h": 3},
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "min": 0,
+          "max": 100,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "rgba(74,222,128,0.85)", "value": null},
+              {"color": "rgba(234,179,8,0.85)", "value": 80},
+              {"color": "rgba(248,113,113,0.85)", "value": 90}
+            ]
+          },
+          "color": {"mode": "thresholds"}
+        }
+      },
+      "options": {
+        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false},
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true
+      },
+      "targets": [{
+        "expr": "100 - (node_filesystem_avail_bytes{mountpoint=\"/var/lib/kubelet\",job=\"aws-node-exporter\",fstype!=\"\"} / node_filesystem_size_bytes{mountpoint=\"/var/lib/kubelet\",job=\"aws-node-exporter\",fstype!=\"\"} * 100)",
+        "legendFormat": "Used kubelet",
+        "instant": true
+      }]
+    },
+    {
+      "id": 12,
+      "title": "CPU Usage % (by mode)",
+      "type": "timeseries",
+      "gridPos": {"x": 0, "y": 6, "w": 12, "h": 6},
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "min": 0,
+          "max": 100,
+          "color": {"mode": "palette-classic"}
+        }
+      },
+      "options": {
+        "legend": {"calcs": ["mean", "lastNotNull"], "displayMode": "table", "placement": "bottom"},
+        "tooltip": {"mode": "multi"}
+      },
+      "targets": [
+        {"expr": "avg(rate(node_cpu_seconds_total{job=\"aws-node-exporter\",mode=\"user\"}[5m])) * 100", "legendFormat": "User"},
+        {"expr": "avg(rate(node_cpu_seconds_total{job=\"aws-node-exporter\",mode=\"system\"}[5m])) * 100", "legendFormat": "System"},
+        {"expr": "avg(rate(node_cpu_seconds_total{job=\"aws-node-exporter\",mode=\"iowait\"}[5m])) * 100", "legendFormat": "I/O Wait"},
+        {"expr": "avg(rate(node_cpu_seconds_total{job=\"aws-node-exporter\",mode=\"idle\"}[5m])) * 100", "legendFormat": "Idle"}
+      ]
+    },
+    {
+      "id": 13,
+      "title": "CPU Load (1m / 5m / 15m)",
+      "type": "timeseries",
+      "gridPos": {"x": 12, "y": 6, "w": 12, "h": 6},
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]},
+          "color": {"mode": "palette-classic"}
+        }
+      },
+      "options": {
+        "legend": {"calcs": ["mean", "lastNotNull"], "displayMode": "table", "placement": "bottom"},
+        "tooltip": {"mode": "multi"}
+      },
+      "targets": [
+        {"expr": "node_load1{job=\"aws-node-exporter\"}", "legendFormat": "Load 1m"},
+        {"expr": "node_load5{job=\"aws-node-exporter\"}", "legendFormat": "Load 5m"},
+        {"expr": "node_load15{job=\"aws-node-exporter\"}", "legendFormat": "Load 15m"}
+      ]
+    },
+    {
+      "id": 14,
+      "title": "Memory Usage",
+      "type": "timeseries",
+      "gridPos": {"x": 0, "y": 12, "w": 12, "h": 6},
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "color": {"mode": "palette-classic"}
+        }
+      },
+      "options": {
+        "legend": {"calcs": ["mean", "lastNotNull"], "displayMode": "table", "placement": "bottom"},
+        "tooltip": {"mode": "multi"}
+      },
+      "targets": [
+        {"expr": "node_memory_MemTotal_bytes{job=\"aws-node-exporter\"}", "legendFormat": "Total"},
+        {"expr": "node_memory_MemAvailable_bytes{job=\"aws-node-exporter\"}", "legendFormat": "Available"},
+        {"expr": "node_memory_Active_bytes{job=\"aws-node-exporter\"}", "legendFormat": "Active"},
+        {"expr": "node_memory_MemFree_bytes{job=\"aws-node-exporter\"}", "legendFormat": "Free"},
+        {"expr": "node_memory_Buffers_bytes{job=\"aws-node-exporter\"}", "legendFormat": "Buffers"},
+        {"expr": "node_memory_Cached_bytes{job=\"aws-node-exporter\"}", "legendFormat": "Cached"}
+      ]
+    },
+    {
+      "id": 15,
+      "title": "Swap Usage",
+      "type": "timeseries",
+      "gridPos": {"x": 12, "y": 12, "w": 12, "h": 6},
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "color": {"mode": "palette-classic"}
+        }
+      },
+      "options": {
+        "legend": {"calcs": ["mean", "lastNotNull"], "displayMode": "table", "placement": "bottom"},
+        "tooltip": {"mode": "multi"}
+      },
+      "targets": [
+        {"expr": "node_memory_SwapTotal_bytes{job=\"aws-node-exporter\"}", "legendFormat": "Total"},
+        {"expr": "node_memory_SwapFree_bytes{job=\"aws-node-exporter\"}", "legendFormat": "Free"},
+        {"expr": "node_memory_SwapTotal_bytes{job=\"aws-node-exporter\"} - node_memory_SwapFree_bytes{job=\"aws-node-exporter\"}", "legendFormat": "Used"}
+      ]
+    },
+    {
+      "id": 16,
+      "title": "Disk Usage % (all mounts)",
+      "type": "timeseries",
+      "gridPos": {"x": 0, "y": 18, "w": 12, "h": 6},
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "min": 0,
+          "max": 100,
+          "color": {"mode": "palette-classic"}
+        }
+      },
+      "options": {
+        "legend": {"calcs": ["mean", "lastNotNull"], "displayMode": "table", "placement": "bottom"},
+        "tooltip": {"mode": "multi"}
+      },
+      "targets": [{
+        "expr": "100 - (node_filesystem_avail_bytes{job=\"aws-node-exporter\",fstype!=\"\"} / node_filesystem_size_bytes{job=\"aws-node-exporter\",fstype!=\"\"} * 100)",
+        "legendFormat": "{{mountpoint}}"
+      }]
+    },
+    {
+      "id": 17,
+      "title": "Disk I/O (read/write)",
+      "type": "timeseries",
+      "gridPos": {"x": 12, "y": 18, "w": 12, "h": 6},
+      "fieldConfig": {
+        "defaults": {
+          "unit": "Bps",
+          "color": {"mode": "palette-classic"}
+        }
+      },
+      "options": {
+        "legend": {"calcs": ["mean", "lastNotNull"], "displayMode": "table", "placement": "bottom"},
+        "tooltip": {"mode": "multi"}
+      },
+      "targets": [
+        {"expr": "rate(node_disk_read_bytes_total{job=\"aws-node-exporter\",device=~\"nvme.*|xvd.*|sd.*\"}[5m])", "legendFormat": "Read {{device}}"},
+        {"expr": "rate(node_disk_written_bytes_total{job=\"aws-node-exporter\",device=~\"nvme.*|xvd.*|sd.*\"}[5m])", "legendFormat": "Write {{device}}"}
+      ]
+    },
+    {
+      "id": 18,
+      "title": "Network Traffic",
+      "type": "timeseries",
+      "gridPos": {"x": 0, "y": 24, "w": 12, "h": 6},
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bps",
+          "color": {"mode": "palette-classic"}
+        }
+      },
+      "options": {
+        "legend": {"calcs": ["mean", "lastNotNull"], "displayMode": "table", "placement": "bottom"},
+        "tooltip": {"mode": "multi"}
+      },
+      "targets": [
+        {"expr": "rate(node_network_receive_bytes_total{job=\"aws-node-exporter\",device!=\"lo\"}[5m]) * 8", "legendFormat": "Recv {{device}}"},
+        {"expr": "rate(node_network_transmit_bytes_total{job=\"aws-node-exporter\",device!=\"lo\"}[5m]) * 8", "legendFormat": "Trans {{device}}"}
+      ]
+    },
+    {
+      "id": 19,
+      "title": "Network Errors",
+      "type": "timeseries",
+      "gridPos": {"x": 12, "y": 24, "w": 12, "h": 6},
+      "fieldConfig": {
+        "defaults": {
+          "unit": "cps",
+          "color": {"mode": "palette-classic"}
+        }
+      },
+      "options": {
+        "legend": {"calcs": ["mean", "lastNotNull"], "displayMode": "table", "placement": "bottom"},
+        "tooltip": {"mode": "multi"}
+      },
+      "targets": [
+        {"expr": "rate(node_network_receive_errors_total{job=\"aws-node-exporter\",device!=\"lo\"}[5m])", "legendFormat": "Recv err {{device}}"},
+        {"expr": "rate(node_network_transmit_errors_total{job=\"aws-node-exporter\",device!=\"lo\"}[5m])", "legendFormat": "Trans err {{device}}"}
+      ]
+    },
+    {
+      "id": 20,
+      "title": "Network Packets",
+      "type": "timeseries",
+      "gridPos": {"x": 0, "y": 30, "w": 12, "h": 6},
+      "fieldConfig": {
+        "defaults": {
+          "unit": "cps",
+          "color": {"mode": "palette-classic"}
+        }
+      },
+      "options": {
+        "legend": {"calcs": ["mean", "lastNotNull"], "displayMode": "table", "placement": "bottom"},
+        "tooltip": {"mode": "multi"}
+      },
+      "targets": [
+        {"expr": "rate(node_network_receive_packets_total{job=\"aws-node-exporter\",device!=\"lo\"}[5m])", "legendFormat": "Recv pkt {{device}}"},
+        {"expr": "rate(node_network_transmit_packets_total{job=\"aws-node-exporter\",device!=\"lo\"}[5m])", "legendFormat": "Trans pkt {{device}}"}
+      ]
+    },
+    {
+      "id": 21,
+      "title": "Processes",
+      "type": "stat",
+      "gridPos": {"x": 12, "y": 30, "w": 4, "h": 3},
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "color": {"mode": "none"}
+        }
+      },
+      "options": {
+        "colorMode": "none",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false},
+        "textMode": "auto"
+      },
+      "targets": [{
+        "expr": "node_processes_max_processes{job=\"aws-node-exporter\"}",
+        "legendFormat": "Max PIDs",
+        "instant": true
+      }]
+    },
+    {
+      "id": 22,
+      "title": "Running Processes",
+      "type": "stat",
+      "gridPos": {"x": 16, "y": 30, "w": 4, "h": 3},
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "color": {"mode": "none"}
+        }
+      },
+      "options": {
+        "colorMode": "none",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false},
+        "textMode": "auto"
+      },
+      "targets": [{
+        "expr": "node_procs_running{job=\"aws-node-exporter\"}",
+        "legendFormat": "Running",
+        "instant": true
+      }]
+    },
+    {
+      "id": 23,
+      "title": "Blocked Processes",
+      "type": "stat",
+      "gridPos": {"x": 20, "y": 30, "w": 4, "h": 3},
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "color": {"mode": "none"}
+        }
+      },
+      "options": {
+        "colorMode": "none",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false},
+        "textMode": "auto"
+      },
+      "targets": [{
+        "expr": "node_procs_blocked{job=\"aws-node-exporter\"}",
+        "legendFormat": "Blocked",
+        "instant": true
+      }]
+    },
+    {
+      "id": 24,
+      "title": "Context Switches",
+      "type": "timeseries",
+      "gridPos": {"x": 12, "y": 33, "w": 12, "h": 5},
+      "fieldConfig": {
+        "defaults": {
+          "unit": "cps",
+          "color": {"mode": "palette-classic"}
+        }
+      },
+      "options": {
+        "legend": {"calcs": ["mean", "lastNotNull"], "displayMode": "table", "placement": "bottom"},
+        "tooltip": {"mode": "multi"}
+      },
+      "targets": [{
+        "expr": "rate(node_context_switches_total{job=\"aws-node-exporter\"}[5m])",
+        "legendFormat": "Context switches/s"
+      }]
+    },
+    {
+      "id": 25,
+      "title": "Entropy",
+      "type": "timeseries",
+      "gridPos": {"x": 0, "y": 36, "w": 12, "h": 5},
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "orange", "value": 200}]},
+          "color": {"mode": "thresholds"}
+        }
+      },
+      "options": {
+        "legend": {"calcs": ["mean", "lastNotNull"], "displayMode": "table", "placement": "bottom"},
+        "tooltip": {"mode": "multi"}
+      },
+      "targets": [{
+        "expr": "node_entropy_available_bits{job=\"aws-node-exporter\"}",
+        "legendFormat": "Entropy (bits)"
+      }]
+    },
+    {
+      "id": 26,
+      "title": "Filesystem inodes (/)",
+      "type": "gauge",
+      "gridPos": {"x": 12, "y": 38, "w": 4, "h": 3},
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "min": 0,
+          "max": 100,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "rgba(74,222,128,0.85)", "value": null},
+              {"color": "rgba(234,179,8,0.85)", "value": 80},
+              {"color": "rgba(248,113,113,0.85)", "value": 90}
+            ]
+          },
+          "color": {"mode": "thresholds"}
+        }
+      },
+      "options": {
+        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false},
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true
+      },
+      "targets": [{
+        "expr": "(1 - node_filesystem_files_free{mountpoint=\"/\",job=\"aws-node-exporter\",fstype!=\"\"} / node_filesystem_files{mountpoint=\"/\",job=\"aws-node-exporter\",fstype!=\"\"}) * 100",
+        "legendFormat": "inode used %",
+        "instant": true
+      }]
+    },
+    {
+      "id": 27,
+      "title": "Memory Trend (7d)",
+      "type": "timeseries",
+      "gridPos": {"x": 0, "y": 41, "w": 24, "h": 5},
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "color": {"mode": "palette-classic"}
+        }
+      },
+      "options": {
+        "legend": {"calcs": ["mean", "min", "max"], "displayMode": "table", "placement": "bottom"},
+        "tooltip": {"mode": "multi"}
+      },
+      "targets": [
+        {"expr": "node_memory_MemTotal_bytes{job=\"aws-node-exporter\"}", "legendFormat": "Total"},
+        {"expr": "node_memory_MemAvailable_bytes{job=\"aws-node-exporter\"}", "legendFormat": "Available"},
+        {"expr": "node_memory_MemFree_bytes{job=\"aws-node-exporter\"}", "legendFormat": "Free"}
+      ]
+    },
+    {
+      "id": 28,
+      "title": "TCP Connections",
+      "type": "stat",
+      "gridPos": {"x": 16, "y": 38, "w": 4, "h": 3},
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "color": {"mode": "none"}
+        }
+      },
+      "options": {
+        "colorMode": "none",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false},
+        "textMode": "auto"
+      },
+      "targets": [{
+        "expr": "node_netstat_Tcp_CurrEstab{job=\"aws-node-exporter\"}",
+        "legendFormat": "Established",
+        "instant": true
+      }]
+    },
+    {
+      "id": 29,
+      "title": "UDP Sockets in use",
+      "type": "stat",
+      "gridPos": {"x": 20, "y": 38, "w": 4, "h": 3},
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "color": {"mode": "none"}
+        }
+      },
+      "options": {
+        "colorMode": "none",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false},
+        "textMode": "auto"
+      },
+      "targets": [{
+        "expr": "node_netstat_Udp_InDatagrams{job=\"aws-node-exporter\"} - node_netstat_Udp_NoPorts{job=\"aws-node-exporter\"} - node_netstat_Udp_InErrors{job=\"aws-node-exporter\"}",
+        "legendFormat": "UDP in use",
+        "instant": true
+      }]
+    }
+  ],
+  "refresh": "30s",
+  "time": {"from": "now-1h", "to": "now"},
+  "timepicker": {},
+  "templating": {
+    "list": [
+      {
+        "name": "job",
+        "type": "constant",
+        "label": "Job",
+        "query": "aws-node-exporter",
+        "current": {"text": "aws-node-exporter", "value": "aws-node-exporter"},
+        "hide": 2
+      }
+    ]
+  },
+  "annotations": {
+    "list": []
+  },
+  "links": [],
+  "style": "dark",
+  "description": "AWS EC2 t3.micro full system monitoring — memory, CPU, disk, network, processes, TCP, entropy"
+}

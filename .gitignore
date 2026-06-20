@@ -19,6 +19,10 @@ k8s/kubeconfig-lab
 # Local IDE settings
 .claude/settings.local.json
 
+# Environment / secrets
+.env
+.env.local
+
 # Operational docs (local only — містять IP, ID, шляхи)
 HOW-TO.md
 TODO-WARN.md
