@@ -1,26 +1,26 @@
 #!/usr/bin/env python3
 """
-grafana-sync.py — автоматический импорт/экспорт дашбордов Grafana
-=================================================================
+grafana-sync.py — автоматичний імпорт/експорт дашбордів Grafana
+==================================================================
 
-Назначение:
-    Импортировать JSON-файлы дашбордов из docker/monitoring/ в Grafana
-    или экспортировать существующие дашборды из Grafana обратно в файлы.
+Призначення:
+    Імпортувати JSON-файли дашбордів з docker/monitoring/ у Grafana
+    або експортувати наявні дашборди з Grafana назад у файли.
 
-Использование:
-    python3 scripts/grafana-sync.py import            # импорт всех дашбордов
+Використання:
+    python3 scripts/grafana-sync.py import            # імпорт усіх дашбордів
     python3 scripts/grafana-sync.py import --file grafana-aws-ec2.json  # один файл
-    python3 scripts/grafana-sync.py export            # экспорт всех дашбордов
+    python3 scripts/grafana-sync.py export            # експорт усіх дашбордів
     python3 scripts/grafana-sync.py export --uid aws-ec2-system  # один дашборд
-    python3 scripts/grafana-sync.py list              # список дашбордов в Grafana
+    python3 scripts/grafana-sync.py list              # список дашбордів у Grafana
 
-Переменные окружения (или значения по умолчанию):
+Змінні оточення (або значення за замовчуванням):
     GRAFANA_URL      — http://localhost:3000
     GRAFANA_USER     — admin
     GRAFANA_PASSWORD — devops123
     DASHBOARDS_DIR   — docker/monitoring/
 
-Зависимости: requests (pip3 install requests)
+Залежності: requests (pip3 install requests)
 """
 
 import argparse
@@ -33,16 +33,16 @@ from pathlib import Path
 try:
     import requests
 except ImportError:
-    print("❌  Требуется установить requests:  pip3 install requests")
+    print("❌  Потрібно встановити requests:  pip3 install requests")
     sys.exit(1)
 
-# ─── Конфигурация ───────────────────────────────────────────────────────────
+# ─── Конфігурація ────────────────────────────────────────────────────────────
 
 GRAFANA_URL = os.getenv("GRAFANA_URL", "http://localhost:3000")
 GRAFANA_USER = os.getenv("GRAFANA_USER", "admin")
 GRAFANA_PASSWORD = os.getenv("GRAFANA_PASSWORD", "devops123")
 
-# Путь к директории с JSON-файлами дашбордов (относительно корня проекта)
+# Шлях до директорії з JSON-файлами дашбордів (відносно кореня проекту)
 SCRIPT_DIR = Path(__file__).resolve().parent
 PROJECT_ROOT = SCRIPT_DIR.parent
 DASHBOARDS_DIR = os.getenv("DASHBOARDS_DIR", str(PROJECT_ROOT / "docker" / "monitoring"))
@@ -51,10 +51,10 @@ AUTH = (GRAFANA_USER, GRAFANA_PASSWORD)
 HEADERS = {"Content-Type": "application/json"}
 
 
-# ─── Вспомогательные функции ────────────────────────────────────────────────
+# ─── Допоміжні функції ─────────────────────────────────────────────────────
 
 def grafana_api(method, path, data=None):
-    """Универсальный вызов Grafana HTTP API."""
+    """Універсальний виклик Grafana HTTP API."""
     url = f"{GRAFANA_URL}/api{path}"
     try:
         if method == "GET":
@@ -69,8 +69,8 @@ def grafana_api(method, path, data=None):
         resp.raise_for_status()
         return resp.json()
     except requests.exceptions.ConnectionError:
-        print(f"❌  Не могу connected к Grafana по адресу {GRAFANA_URL}")
-        print(f"    Проверьте, запущен ли контейнер Grafana и правильный ли URL.")
+        print(f"❌  Не можу підключитися до Grafana за адресою {GRAFANA_URL}")
+        print(f"    Перевірте, чи запущено контейнер Grafana та чи правильний URL.")
         sys.exit(1)
     except requests.exceptions.HTTPError as e:
         print(f"❌  HTTP {e.response.status_code}: {e.response.text}")
@@ -78,7 +78,7 @@ def grafana_api(method, path, data=None):
 
 
 def find_dashboard_files(directory=None, pattern="grafana-*.json"):
-    """Найти все JSON-файлы дашбордов в директории."""
+    """Знайти всі JSON-файли дашбордів у директорії."""
     if directory is None:
         directory = DASHBOARDS_DIR
     path_pattern = os.path.join(directory, pattern)
@@ -87,23 +87,23 @@ def find_dashboard_files(directory=None, pattern="grafana-*.json"):
 
 
 def validate_dashboard_json(filepath):
-    """Проверить, что JSON-файл — корректный дашборд Grafana."""
+    """Перевірити, що JSON-файл — коректний дашборд Grafana."""
     try:
         with open(filepath, "r", encoding="utf-8") as f:
             data = json.load(f)
         if "title" not in data:
-            print(f"⚠️   {filepath.name}: нет поля 'title' — пропускаю")
+            print(f"⚠️   {filepath.name}: немає поля 'title' — пропускаю")
             return None
         return data
     except json.JSONDecodeError as e:
-        print(f"⚠️   {filepath.name}: ошибка JSON ({e}) — пропускаю")
+        print(f"⚠️   {filepath.name}: помилка JSON ({e}) — пропускаю")
         return None
 
 
-# ─── Команды ────────────────────────────────────────────────────────────────
+# ─── Команди ─────────────────────────────────────────────────────────────────
 
 def cmd_import(args):
-    """Импортировать дашборды из файлов в Grafana."""
+    """Імпортувати дашборди з файлів у Grafana."""
     if args.file:
         files = [Path(args.file)]
         if not files[0].is_absolute():
@@ -111,7 +111,7 @@ def cmd_import(args):
     else:
         files = find_dashboard_files()
         if not files:
-            print(f"⚠️   Файлы дашбордов не найдены в {DASHBOARDS_DIR}")
+            print(f"⚠️   Файли дашбордів не знайдено в {DASHBOARDS_DIR}")
             return
 
     imported = 0
@@ -124,7 +124,7 @@ def cmd_import(args):
         title = dashboard.get("title", filepath.stem)
         uid = dashboard.get("uid", "")
 
-        print(f"📤  Импортирую: {title} ({filepath.name})", end=" ... ", flush=True)
+        print(f"📤  Імпортую: {title} ({filepath.name})", end=" ... ", flush=True)
 
         payload = {
             "dashboard": dashboard,
@@ -136,34 +136,34 @@ def cmd_import(args):
         print("✅")
         imported += 1
 
-    print(f"\n✅  Импортировано дашбордов: {imported}")
+    print(f"\n✅  Імпортовано дашбордів: {imported}")
 
 
 def cmd_export(args):
-    """Экспортировать дашборды из Grafana в файлы."""
+    """Експортувати дашборди з Grafana у файли."""
     if args.uid:
         uids = [args.uid]
     else:
-        # Получить список всех дашбордов
+        # Отримати список усіх дашбордів
         search_result = grafana_api("GET", "/search?type=dash-db")
         uids = [item["uid"] for item in search_result]
 
     if not uids:
-        print("⚠️   В Grafana не найдено ни одного дашборда")
+        print("⚠️   У Grafana не знайдено жодного дашборда")
         return
 
     exported = 0
     for uid in uids:
-        print(f"📥  Экспортирую UID: {uid}", end=" ... ", flush=True)
+        print(f"📥  Експортую UID: {uid}", end=" ... ", flush=True)
 
         dashboard_data = grafana_api("GET", f"/dashboards/uid/{uid}")
 
-        # Извлекаем сам дашборд и убираем служебные поля
+        # Витягуємо сам дашборд і прибираємо службові поля
         dashboard = dashboard_data.get("dashboard", {})
 
-        # Сохраняем
+        # Зберігаємо
         title = dashboard.get("title", uid)
-        # Создаём имя файла: grafana-{slug}.json
+        # Створюємо ім'я файлу: grafana-{slug}.json
         slug = "".join(c if c.isalnum() or c in "-_" else "_" for c in title.lower().replace(" ", "-"))
         filename = f"grafana-{slug}.json"
         filepath = Path(DASHBOARDS_DIR) / filename
@@ -174,15 +174,15 @@ def cmd_export(args):
         print(f"✅  → {filepath.name}")
         exported += 1
 
-    print(f"\n✅  Экспортировано дашбордов: {exported}")
+    print(f"\n✅  Експортовано дашбордів: {exported}")
 
 
 def cmd_list(args):
-    """Показать список дашбордов в Grafana."""
+    """Показати список дашбордів у Grafana."""
     search_result = grafana_api("GET", "/search?type=dash-db")
 
     if not search_result:
-        print("📭  В Grafana нет дашбордов")
+        print("📭  У Grafana немає дашбордів")
         return
 
     print(f"{'UID':<30} {'Title':<40} {'Tags':<30}")
@@ -193,11 +193,11 @@ def cmd_list(args):
         tags = ", ".join(item.get("tags", []))
         print(f"{uid:<30} {title:<40} {tags:<30}")
 
-    print(f"\n📊  Всего: {len(search_result)} дашбордов")
+    print(f"\n📊  Всього: {len(search_result)} дашбордів")
 
 
 def cmd_health(args):
-    """Проверить доступность Grafana API."""
+    """Перевірити доступність Grafana API."""
     try:
         resp = requests.get(f"{GRAFANA_URL}/api/health", timeout=5)
         resp.raise_for_status()
@@ -206,8 +206,8 @@ def cmd_health(args):
         print(f"   Version: {data.get('version', 'unknown')}")
         print(f"   Database: {data.get('database', 'unknown')}")
     except requests.exceptions.ConnectionError:
-        print(f"❌  Не могу connected к Grafana {GRAFANA_URL}")
-        print(f"    Проверьте, запущен ли контейнер Grafana")
+        print(f"❌  Не можу підключитися до Grafana {GRAFANA_URL}")
+        print(f"    Перевірте, чи запущено контейнер Grafana")
         sys.exit(1)
     except requests.exceptions.HTTPError as e:
         print(f"❌  HTTP {e.response.status_code}: {e.response.text}")
@@ -218,25 +218,25 @@ def cmd_health(args):
 
 def main():
     parser = argparse.ArgumentParser(
-        description="grafana-sync — автоматический импорт/экспорт дашбордов Grafana",
+        description="grafana-sync — автоматичний імпорт/експорт дашбордів Grafana",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=__doc__,
     )
     subparsers = parser.add_subparsers(dest="command", help="Команда")
 
     # import
-    p_import = subparsers.add_parser("import", help="Импортировать дашборды в Grafana")
-    p_import.add_argument("--file", "-f", help="Импортировать только один файл (grafana-*.json)")
+    p_import = subparsers.add_parser("import", help="Імпортувати дашборди в Grafana")
+    p_import.add_argument("--file", "-f", help="Імпортувати тільки один файл (grafana-*.json)")
 
     # export
-    p_export = subparsers.add_parser("export", help="Экспортировать дашборды из Grafana в файлы")
-    p_export.add_argument("--uid", "-u", help="Экспортировать только один дашборд по UID")
+    p_export = subparsers.add_parser("export", help="Експортувати дашборди з Grafana у файли")
+    p_export.add_argument("--uid", "-u", help="Експортувати тільки один дашборд за UID")
 
     # list
-    subparsers.add_parser("list", help="Показать список дашбордов в Grafana")
+    subparsers.add_parser("list", help="Показати список дашбордів у Grafana")
 
     # health
-    subparsers.add_parser("health", help="Проверить доступность Grafana API")
+    subparsers.add_parser("health", help="Перевірити доступність Grafana API")
 
     args = parser.parse_args()
 
@@ -244,7 +244,7 @@ def main():
         parser.print_help()
         sys.exit(1)
 
-    # Маршрутизация команд
+    # Маршрутизація команд
     commands = {
         "import": cmd_import,
         "export": cmd_export,

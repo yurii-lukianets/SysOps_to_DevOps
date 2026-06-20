@@ -1,56 +1,56 @@
 # Dashboard Creator MD
 
-> **Назначение:** Руководство по созданию, импорту и редактированию дашбордов Grafana для проекта SysOps → DevOps.  
-> **Окружение:** Локальный стек Docker Compose на Linux-сервере (192.168.100.203) — Prometheus + Grafana + node-exporter.  
-> **Порты:** Grafana — `:3000`, Prometheus — `:9091`
+> **Призначення:** Посібник зі створення, імпорту та редагування дашбордів Grafana для проекту SysOps → DevOps.  
+> **Середовище:** Локальний стек Docker Compose на Linux-сервері (192.168.100.203) — Prometheus + Grafana + node-exporter.  
+> **Порти:** Grafana — `:3000`, Prometheus — `:9091`
 
 ---
 
-## 0. Безопасность: секреты и пароли
+## 0. Безпека: секрети та паролі
 
-Все пароли, ключи и чувствительные данные **вынесены в файл `.env`**, который добавлен в `.gitignore` и никогда не попадает в Git.
+Всі паролі, ключі та чутливі дані **винесені у файл `.env`**, який доданий до `.gitignore` і ніколи не потрапляє в Git.
 
-### 0.1 Файлы с секретами
+### 0.1 Файли з секретами
 
-| Файл | Назначение | В Git? |
+| Файл | Призначення | В Git? |
 |------|-----------|--------|
-| `.env` | Реальные пароли и ключи | **НЕТ** (`.gitignore`) |
-| `.env.example` | Шаблон для клонирования проекта | ДА |
-| `ansible/group_vars/devops_lab.yml` | Читает `GRAFANA_PASSWORD` из окружения | ДА (сырой пароль не хранится) |
-| `docker/monitoring/docker-compose.yml` | Использует `${GRAFANA_PASSWORD:-devops123}` | ДА |
-| `scripts/grafana-sync.py` | Default `devops123`, читает из env | ДА |
+| `.env` | Реальні паролі та ключі | **НІ** (`.gitignore`) |
+| `.env.example` | Шаблон для клонування проекту | ТАК |
+| `ansible/group_vars/devops_lab.yml` | Читає `GRAFANA_PASSWORD` із середовища | ТАК (сирий пароль не зберігається) |
+| `docker/monitoring/docker-compose.yml` | Використовує `${GRAFANA_PASSWORD:-devops123}` | ТАК |
+| `scripts/grafana-sync.py` | Default `devops123`, читає з env | ТАК |
 
-### 0.2 Как использовать
+### 0.2 Як використовувати
 
 ```bash
-# 1. Скопируйте шаблон
+# 1. Скопіюйте шаблон
 cp .env.example .env
 
-# 2. Замените значения на свои
+# 2. Замініть значення на свої
 nano .env
 
-# 3. Загрузите переменные в shell
+# 3. Завантажте змінні в shell
 source .env
 ```
 
-### 0.3 Что делать, если пароль случайно попал в Git
+### 0.3 Що робити, якщо пароль випадково потрапив у Git
 
 ```bash
-# 1. Немедленно смените пароль во всех системах
-# 2. Используйте git filter-repo или BFG Repo-Cleaner для удаления из истории
+# 1. Негайно змініть пароль у всіх системах
+# 2. Використовуйте git filter-repo або BFG Repo-Cleaner для видалення з історії
 # 3. Форсируйте push с --force
 ```
 
 ---
 
-## 1. Архитектура мониторинга
+## 1. Архітектура моніторингу
 
 ```
 Grafana (localhost:3000)
   │
   ├── Data Source: Prometheus (http://prometheus:9090)
   │     │
-  │     ├── job=node-exporter       → локальный хост (Linux сервер 192.168.100.203)
+  │     ├── job=node-exporter       → локальний хост (Linux сервер 192.168.100.203)
   │     ├── job=aws-node-exporter   → AWS EC2 через SSH tunnel (порт 9101)
   │     ├── job=prometheus          → метрики самого Prometheus
   │     ├── job=llama-server        → LLM inference на Windows (192.168.100.15:8080)
@@ -61,26 +61,26 @@ Grafana (localhost:3000)
 
 ---
 
-## 2. Создание дашборда с нуля
+## 2. Створення дашборда з нуля
 
-### 2.1 Вход в Grafana
+### 2.1 Вхід у Grafana
 
 ```
 URL:      http://192.168.100.203:3000
 Login:    admin
-Password: devops123 (или задан в переменной GRAFANA_PASSWORD)
+Password: devops123 (або заданий у змінній GRAFANA_PASSWORD)
 ```
 
-### 2.2 Создание нового дашборда
+### 2.2 Створення нового дашборда
 
 1. **Dashboard → New → New Dashboard**
 2. **Add visualization**
-3. Выберите **Prometheus** как Data Source
-4. Введите PromQL-запрос в поле **Metrics browser / Code**
+3. Виберіть **Prometheus** як Data Source
+4. Введіть PromQL-запит у поле **Metrics browser / Code**
 
-### 2.3 Базовые PromQL-запросы
+### 2.3 Базові PromQL-запити
 
-| Что хотим увидеть | PromQL |
+| Що хочемо побачити | PromQL |
 |-------------------|--------|
 | Загрузка CPU (1 мин) | `node_load1{instance=~"$instance"}` |
 | Всего памяти | `node_memory_MemTotal_bytes{instance=~"$instance"}` |
@@ -90,29 +90,29 @@ Password: devops123 (или задан в переменной GRAFANA_PASSWORD)
 | Network received | `rate(node_network_receive_bytes_total{instance=~"$instance", device!="lo"}[5m])` |
 | Network transmitted | `rate(node_network_transmit_bytes_total{instance=~"$instance", device!="lo"}[5m])` |
 
-### 2.4 Типы панелей
+### 2.4 Типи панелей
 
-| Тип | Когда использовать |
+| Тип | Коли використовувати |
 |-----|-------------------|
-| **Stat** | Одно значение (memory total, CPU cores) |
-| **Time series** | Изменение во времени (CPU load, memory, network) |
-| **Gauge** | Процентное значение (disk usage, memory usage %) |
-| **Table** | Список (top процессов по памяти) |
-| **Bar gauge** | Сравнение между несколькими сущностями |
-| **Pie chart** | Распределение долей |
+| **Stat** | Одне значення (memory total, CPU cores) |
+| **Time series** | Зміна в часі (CPU load, memory, network) |
+| **Gauge** | Відсоткове значення (disk usage, memory usage %) |
+| **Table** | Список (top процесів за пам'яттю) |
+| **Bar gauge** | Порівняння між кількома сутностями |
+| **Pie chart** | Розподіл часток |
 
 ---
 
-## 3. Импорт готового дашборда
+## 3. Імпорт готового дашборда
 
 ### 3.1 Через UI Grafana
 
 1. **Dashboard → New → Import**
-2. Загрузите JSON-файл или вставьте содержимое JSON
-3. Выберите Data Source: **Prometheus**
-4. Нажмите **Import**
+2. Завантажте JSON-файл або вставте вміст JSON
+3. Виберіть Data Source: **Prometheus**
+4. Нажміть **Import**
 
-### 3.2 Через API (автоматизация)
+### 3.2 Через API (автоматизація)
 
 ```bash
 # Импорт дашборда через Grafana API
@@ -128,23 +128,23 @@ curl -X POST http://admin:devops123@192.168.100.203:3000/api/dashboards/db \
   }'
 ```
 
-### 3.3 Проверка импорта
+### 3.3 Перевірка імпорту
 
 ```bash
-# Получить список всех дашбордов
+# Отримати список усіх дашбордів
 curl -s http://admin:devops123@192.168.100.203:3000/api/search?type=dash-db \
   | python3 -m json.tool
 ```
 
 ---
 
-## 4. Работа с переменными (template variables)
+## 4. Робота зі змінними (template variables)
 
-Переменные позволяют переключать источник данных в панелях без редактирования каждого запроса.
+Змінні дозволяють перемикати джерело даних у панелях без редагування кожного запиту.
 
-### 4.1 Добавление переменной
+### 4.1 Додавання змінної
 
-1. В дашборде: **Settings → Variables → Add variable**
+1. У дашборді: **Settings → Variables → Add variable**
 2. Тип: **Query**
 3. Name: `instance`
 4. Label: `Instance`
@@ -153,102 +153,102 @@ curl -s http://admin:devops123@192.168.100.203:3000/api/search?type=dash-db \
 7. Include All option: ✅
 8. Save
 
-### 4.2 Использование переменной в PromQL
+### 4.2 Використання змінної в PromQL
 
 ```
 node_memory_MemTotal_bytes{instance=~"$instance"}
 ```
 
-### 4.3 Фильтрация с помощью regex
+### 4.3 Фільтрація за допомогою regex
 
 ```
-# Фильтр instance по двум jobs:
-# node-exporter (локальный) + aws-node-exporter (AWS через туннель)
+# Фільтр instance за двома jobs:
+# node-exporter (локальний) + aws-node-exporter (AWS через тунель)
 instance=~".*(observability|9101).*"
 ```
 
-### 4.4 Где взять правильные метки
+### 4.4 Де взяти правильні мітки
 
 ```bash
-# Просмотр всех доступных instance label значений
+# Перегляд усіх доступних instance label значень
 curl -s http://localhost:9091/api/v1/label/instance/values | python3 -m json.tool
 
-# Или через Prometheus UI: http://192.168.100.203:9091/classic/targets
+# Або через Prometheus UI: http://192.168.100.203:9091/classic/targets
 ```
 
 ---
 
-## 5. Job-ы Prometheus в проекте
+## 5. Job-и Prometheus у проекті
 
-| Job name | Targets | Описание |
+| Job name | Targets | Опис |
 |----------|---------|----------|
 | `prometheus` | `localhost:9090` | Сам Prometheus |
-| `node-exporter` | `node-exporter:9100` | Локальный Linux-сервер (192.168.100.203) |
+| `node-exporter` | `node-exporter:9100` | Локальний Linux-сервер (192.168.100.203) |
 | `aws-node-exporter` | `172.17.0.1:9101` | AWS EC2 через SSH tunnel |
 | `llama-server` | `192.168.100.15:8080` | LLM inference на Windows |
 | `llm-api` | `192.168.100.203:30800` | FastAPI proxy |
 
 ---
 
-## 6. Редактирование существующего дашборда
+## 6. Редагування існуючого дашборда
 
 ### 6.1 Через UI
 
-1. Откройте дашборд → **Dashboard settings** (шестерёнка)
-2. Измените:
-   - **Panels** — клик на заголовок панели → Edit
+1. Відкрийте дашборд → **Dashboard settings** (шестерня)
+2. Змініть:
+   - **Panels** — клік на заголовок панелі → Edit
    - **Variables** — Settings → Variables
-   - **Time range** — кнопка времени в правом верхнем углу
-3. Сохраните: **Save** (или Ctrl+S)
+   - **Time range** — кнопка часу в правому верхньому куті
+3. Збережіть: **Save** (або Ctrl+S)
 
-### 6.2 Экспорт JSON для редактирования в файле
+### 6.2 Експорт JSON для редагування у файлі
 
 ```bash
-# Через API — получить JSON дашборда
+# Через API — отримати JSON дашборду
 curl -s http://admin:devops123@192.168.100.203:3000/api/dashboards/uid/aws-k3s-system \
   | python3 -m json.tool > dashboard-backup.json
 ```
 
-### 6.3 Редактирование JSON вручную
+### 6.3 Редагування JSON вручну
 
 ```bash
-# Локальные файлы дашбордов в проекте
+# Локальні файли дашбордів у проекті
 ls -la docker/monitoring/grafana-*.json
 # → grafana-aws-dashboard.json
 # → grafana-aws-ec2.json
 # → grafana-llm-dashboard.json
 
-# Отредактировать, затем импортировать заново
+# Відредагувати, потім імпортувати заново
 nano docker/monitoring/grafana-aws-dashboard.json
 ```
 
-### 6.4 Проверка изменений
+### 6.4 Перевірка змін
 
 ```bash
-# После импорта — проверить, что панели показывают данные
+# Після імпорту — перевірити, що панелі показують дані
 # 1. Открыть дашборд в браузере
 # 2. Проверить каждую панель на наличие данных
 # 3. Если панель показывает "No data" — проверить:
 #    - Есть ли target instance в Prometheus (http://192.168.100.203:9091/targets)
 #    - Правильно ли работает SSH tunnel
-#    - Правильно ли отфильтрованы метки
+#    - Чи правильно відфільтровані мітки
 ```
 
 ---
 
-## 7. Диагностика проблем с дашбордом
+## 7. Діагностика проблем з дашбордом
 
-### 7.1 Панель показывает "No data" или нули
+### 7.1 Панель показує "No data" або нулі
 
-| Возможная причина | Как проверить | Как исправить |
+| Можлива причина | Як перевірити | Як виправити |
 |-------------------|---------------|---------------|
-| Метка instance не совпадает | `curl http://localhost:9091/api/v1/label/instance/values` | Обновить regex-фильтр в запросе |
-| SSH tunnel не работает | `curl http://localhost:9101/metrics \| head -5` | Перезапустить aws-tunnel.sh |
-| Target не scraпится | http://192.168.100.203:9091/targets | Проверить Prometheus job config |
-| Метрика не существует | `curl http://localhost:9091/api/v1/query?query=node_memory_MemTotal_bytes` | Уточнить имя метрики |
-| Нет данных за выбранный период | Переключить time range на `now-30m` | Подождать сбора данных |
+| Мітка instance не збігається | `curl http://localhost:9091/api/v1/label/instance/values` | Оновити regex-фільтр у запиті |
+| SSH tunnel не працює | `curl http://localhost:9101/metrics \| head -5` | Перезапустити aws-tunnel.sh |
+| Target не scraпиться | http://192.168.100.203:9091/targets | Перевірити Prometheus job config |
+| Метрика не існує | `curl http://localhost:9091/api/v1/query?query=node_memory_MemTotal_bytes` | Уточнити ім'я метрики |
+| Немає даних за вибраний період | Переключити time range на `now-30m` | Зачекати збору даних |
 
-### 7.2 SSH tunnel неактивен
+### 7.2 SSH tunnel неактивний
 
 ```bash
 # На Linux-сервере (192.168.100.203)
@@ -259,12 +259,12 @@ ps aux | grep "9101:172.31.39.148:9100"
 pkill -f "9101:172.31.39.148:9100"
 bash /root/scripts/aws-tunnel.sh
 
-# Или через systemd (если настроен)
+# Або через systemd (якщо налаштовано)
 systemctl status aws-tunnel
 systemctl restart aws-tunnel
 ```
 
-### 7.3 Target недоступен в Prometheus
+### 7.3 Target недоступний у Prometheus
 
 ```bash
 # Проверка targets
@@ -277,13 +277,13 @@ curl -s 'http://localhost:9091/api/v1/query?query=up{job="aws-node-exporter"}' \
 
 ---
 
-## 8. Практический пример: дашборд для AWS EC2
+## 8. Практичний приклад: дашборд для AWS EC2
 
-Создан отдельный дашборд **«AWS EC2 — System»** (`grafana-aws-ec2.json`, uid: `aws-ec2-system`), который показывает **только AWS EC2** через job=`aws-node-exporter`.
+Створено окремий дашборд **«AWS EC2 — System»** (`grafana-aws-ec2.json`, uid: `aws-ec2-system`), який показує **тільки AWS EC2** через job=`aws-node-exporter`.
 
-### 8.1 Что он содержит
+### 8.1 Що він містить
 
-| Ряд | Панели |
+| Ряд | Панелі |
 |-----|--------|
 | **y=0** | Uptime, Memory Total, Memory Available, Swap Used, Memory Usage %, CPU Cores |
 | **y=3** | CPU Load (1m/5m/15m), Disk Usage (/), Disk Usage (/var/lib/kubelet) |
@@ -294,20 +294,20 @@ curl -s 'http://localhost:9091/api/v1/query?query=up{job="aws-node-exporter"}' \
 | **y=30** | Network Packets, Processes (Max/Running/Blocked) |
 | **y=33-41** | Context Switches, Entropy, Filesystem inodes, TCP Connections, UDP Sockets, Memory Trend 7d |
 
-### 8.2 Импорт
+### 8.2 Імпорт
 
 ```bash
 python3 scripts/grafana-sync.py import --file grafana-aws-ec2.json
 ```
 
-Или через UI: **Dashboard → New → Import → загрузить файл**
+Або через UI: **Dashboard → New → Import → завантажити файл**
 
-### 8.3 Два дашборда AWS в проекте
+### 8.3 Два дашборди AWS у проекті
 
-| Дашборд | Файл | UID | Что показывает |
+| Дашборд | Файл | UID | Що показує |
 |---------|------|-----|---------------|
-| **AWS EC2 — System** | `grafana-aws-ec2.json` | `aws-ec2-system` | Только AWS EC2 (job=`aws-node-exporter`) |
-| **AWS K3s — System** | `grafana-aws-dashboard.json` | `aws-k3s-system` | Оба хоста (локальный + AWS) через переменную `$instance` |
+| **AWS EC2 — System** | `grafana-aws-ec2.json` | `aws-ec2-system` | Тільки AWS EC2 (job=`aws-node-exporter`) |
+| **AWS K3s — System** | `grafana-aws-dashboard.json` | `aws-k3s-system` | Обидва хости (локальний + AWS) через змінну `$instance` |
 
 ---
 
@@ -352,36 +352,36 @@ python3 scripts/grafana-sync.py import --file grafana-aws-ec2.json
 }
 ```
 
-| Поле | Описание |
+| Поле | Опис |
 |------|----------|
-| `title` | Отображаемое название |
-| `uid` | Уникальный ID для API (однажды задан — не менять) |
-| `panels[].type` | Тип визуализации (`stat`, `timeseries`, `gauge`, `table`) |
-| `gridPos` | Позиция на сетке (x,y,w,h) — 24 колонки |
-| `targets[].expr` | PromQL-запрос |
-| `templating.list` | Переменные дашборда |
-| `refresh` | Автообновление (например `30s`) |
+| `title` | Відображувана назва |
+| `uid` | Унікальний ID для API (одного разу заданий — не змінювати) |
+| `panels[].type` | Тип візуалізації (`stat`, `timeseries`, `gauge`, `table`) |
+| `gridPos` | Позиція на сітці (x,y,w,h) — 24 колонки |
+| `targets[].expr` | PromQL-запит |
+| `templating.list` | Змінні дашборда |
+| `refresh` | Автооновлення (наприклад `30s`) |
 
 ---
 
-## 10. Автоматизация через скрипт
+## 10. Автоматизація через скрипт
 
-Все операции с дашбордами выполняются через единый скрипт `scripts/grafana-sync.py`.
+Всі операції з дашбордами виконуються через єдиний скрипт `scripts/grafana-sync.py`.
 
-### 10.1 Установка
+### 10.1 Встановлення
 
 ```bash
 # На Linux-сервере (192.168.100.203)
 pip3 install requests
 ```
 
-### 10.2 Команды
+### 10.2 Команди
 
 ```bash
-# Проверить доступность Grafana
+# Перевірити доступність Grafana
 python3 scripts/grafana-sync.py health
 
-# Импортировать ВСЕ дашборды из docker/monitoring/
+# Імпортувати ВСІ дашборди з docker/monitoring/
 python3 scripts/grafana-sync.py import
 
 # Импортировать один конкретный дашборд
@@ -397,7 +397,7 @@ python3 scripts/grafana-sync.py export --uid aws-ec2-system
 python3 scripts/grafana-sync.py list
 ```
 
-### 10.3 Переменные окружения (если параметры отличаются от дефолтных)
+### 10.3 Змінні середовища (якщо параметри відрізняються від стандартних)
 
 ```bash
 export GRAFANA_URL=http://192.168.100.203:3000
@@ -406,7 +406,7 @@ export GRAFANA_PASSWORD=devops123
 export DASHBOARDS_DIR=/home/user/mydashboards
 ```
 
-### 10.4 Пример рабочего процесса
+### 10.4 Приклад робочого процесу
 
 ```bash
 # 1. Редактируем JSON-файл дашборда
@@ -425,15 +425,15 @@ python3 scripts/grafana-sync.py list
 
 ## 11. Деплой на Linux-сервер
 
-### 11.1 Подключение
+### 11.1 Підключення
 
-Сервер доступен по SSH-алиасу `devops-lab` (из `~/.ssh/config`):
+Сервер доступний за SSH-аліасом `devops-lab` (із `~/.ssh/config`):
 - Host: `192.168.100.203`
 - Port: `7927`
 - User: `tst`
 - Key: `~/.ssh/devops_lab`
 
-### 11.2 Развёртывание дашбордов
+### 11.2 Розгортання дашбордів
 
 ```bash
 # 1. Скопировать файлы на сервер
@@ -450,7 +450,7 @@ ssh devops-lab 'python3 /tmp/grafana-sync.py import --file /tmp/grafana-aws-dash
 ssh devops-lab 'rm /tmp/grafana-sync.py /tmp/grafana-aws-ec2.json /tmp/grafana-aws-dashboard.json'
 ```
 
-### 11.3 Текущие дашборды в Grafana
+### 11.3 Поточні дашборди в Grafana
 
 | UID | Title |
 |-----|-------|
@@ -461,30 +461,30 @@ ssh devops-lab 'rm /tmp/grafana-sync.py /tmp/grafana-aws-ec2.json /tmp/grafana-a
 
 ---
 
-## 12. Быстрые команды
+## 12. Швидкі команди
 
 ```bash
-# Проверить все instance labels
+# Перевірити всі instance labels
 curl -s http://localhost:9091/api/v1/label/instance/values | python3 -m json.tool
 
-# Проверить job labels
+# Перевірити job labels
 curl -s http://localhost:9091/api/v1/label/job/values | python3 -m json.tool
 
-# Проверить все active targets
+# Перевірити всі active targets
 curl -s http://localhost:9091/api/v1/targets | python3 -c "import sys,json; data=json.load(sys.stdin); [print(f'{t[\"labels\"][\"job\"]}: {t[\"labels\"][\"instance\"]} UP={t[\"health\"]}') for t in data['data']['activeTargets']]"
 
-# Выполнить произвольный PromQL запрос
+# Виконати довільний PromQL запит
 curl -s 'http://localhost:9091/api/v1/query?query=up{job="aws-node-exporter"}' \
   | python3 -m json.tool
 ```
 
 ---
 
-## 13. Ссылки
+## 13. Посилання
 
 - [Grafana Dashboards API](https://grafana.com/docs/grafana/latest/developers/http_api/dashboard/)
 - [PromQL Cheat Sheet](https://promlabs.com/promql-cheat-sheet/)
-- [Локальный стек мониторинга](../docker/monitoring/docker-compose.yml)
+- [Локальний стек моніторингу](../docker/monitoring/docker-compose.yml)
 - [Prometheus config](../docker/monitoring/prometheus.yml)
 - [Дашборд AWS K3s — System](../docker/monitoring/grafana-aws-dashboard.json)
 - [Дашборд AWS EC2 — System](../docker/monitoring/grafana-aws-ec2.json)

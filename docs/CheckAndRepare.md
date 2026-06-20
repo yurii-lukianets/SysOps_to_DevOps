@@ -1,15 +1,15 @@
-# CheckAndRepare — Полный отчёт о диагностике и восстановлении AWS K3s (t3.micro)
+# CheckAndRepare — Повний звіт про діагностику та відновлення AWS K3s (t3.micro)
 
-> **Дата инцидента:** 2026-06-07 — 2026-06-19  
-> **Дата восстановления:** 2026-06-19  
-> **Продолжительность простоя:** ~12 дней  
-> **Автор диагностики:** AI DevOps Assistant (Cline)
+> **Дата інциденту:** 2026-06-07 — 2026-06-19  
+> **Дата відновлення:** 2026-06-19  
+> **Тривалість простою:** ~12 днів  
+> **Автор діагностики:** AI DevOps Assistant (Cline)
 
 ---
 
-## 1. Предыстория и контекст
+## 1. Передісторія та контекст
 
-### 1.1 Архитектура проекта
+### 1.1 Архітектура проекту
 
 ```
 Windows (192.168.100.15)
@@ -17,7 +17,7 @@ Windows (192.168.100.15)
         │
 Linux Server (192.168.100.203)
   ├── Docker Compose (Prometheus, Grafana, node-exporter)
-  ├── K3s (локальный кластер с ArgoCD)
+  ├── K3s (локальний кластер з ArgoCD)
   │     ├── cert-manager
   │     ├── Traefik (Ingress)
   │     ├── llm-api (FastAPI proxy)
@@ -26,13 +26,13 @@ Linux Server (192.168.100.203)
 
 AWS EC2 t3.micro (13.49.255.149)
   ├── K3s (v1.35.5+k3s1, single-node, SQLite)
-  │     ├── Traefik → (был, отключён)
+  │     ├── Traefik → (був, вимкнений)
   │     ├── cert-manager → Let's Encrypt
   │     ├── portfolio (nginx pod)
-  │     ├── Prometheus + node-exporter (был, удалён)
+  │     ├── Prometheus + node-exporter (був, видалений)
   │     └── CoreDNS
   ├── Terraform (EC2 + SG + EIP + IAM)
-  └── nginx (systemd, с 2026-06-19)
+  └── nginx (systemd, з 2026-06-19)
 
 Cloudflare (ai-devops.pp.ua)
   ├── Proxy (orange cloud)
@@ -40,15 +40,15 @@ Cloudflare (ai-devops.pp.ua)
   └── WAF (default rules)
 ```
 
-### 1.2 Что произошло
+### 1.2 Що сталося
 
-7 июня 2026 года EC2 инстанс t3.micro (1GB RAM) ушёл в OOM (Out of Memory). K3s API server перестал отвечать (TLS handshake timeout), Cloudflare начал возвращать ошибки 522 → 521. Сайт `https://ai-devops.pp.ua` был недоступен ~12 дней.
+7 червня 2026 року EC2 інстанс t3.micro (1GB RAM) пішов у OOM (Out of Memory). K3s API server перестав відповідати (TLS handshake timeout), Cloudflare почав повертати помилки 522 → 521. Сайт `https://ai-devops.pp.ua` був недоступний ~12 днів.
 
 ---
 
-## 2. Диагностика (18-19 июня 2026)
+## 2. Діагностика (18-19 червня 2026)
 
-### 2.1 Первичная проверка
+### 2.1 Первинна перевірка
 
 ```powershell
 # Windows — проверка DNS
@@ -68,7 +68,7 @@ aws ec2 describe-instances --instance-ids i-066bd0dac0f09cb74 --region eu-north-
 # → State: running
 ```
 
-### 2.2 Выявление корневой причины
+### 2.2 Виявлення кореневої причини
 
 ```powershell
 # SSH на EC2
@@ -79,7 +79,7 @@ free -h
 # total: 913Mi, used: 640Mi, available: 108Mi
 # swap: 4.0Gi, used: 3.0Gi
 
-# Процессы по потреблению памяти
+# Процеси за споживанням пам'яті
 ps aux --sort=-%mem | head -10
 # k3s server: 437MB (46.7%)
 # containerd: 88MB (9.4%)
@@ -90,26 +90,26 @@ kubectl get pods -A
 # TLS handshake timeout — API server перегружен
 ```
 
-**Вывод:** Система в OOM — 913MB total, 108Mi available, swap 3.0Gi/4.0Gi. K3s API timeout из-за нехватки памяти.
+**Висновок:** Система в OOM — 913MB total, 108Mi available, swap 3.0Gi/4.0Gi. K3s API timeout через нестачу пам'яті.
 
-### 2.3 Состояние компонентов
+### 2.3 Стан компонентів
 
 | Компонент | RSS (MB) | Доля | Статус |
 |-----------|----------|------|--------|
 | k3s server | 437 | 46.7% | ❌ API timeout |
-| containerd | 88 | 9.4% | ⚠️ Работает |
+| containerd | 88 | 9.4% | ⚠️ Працює |
 | traefik | 96 | 10.2% | ❌ CrashLoopBackOff |
 | prometheus | 35 | 3.7% | ❌ CrashLoopBackOff |
-| cert-manager (3) | 45 | 4.8% | ⚠️ Перезапускаются |
+| cert-manager (3) | 45 | 4.8% | ⚠️ Перезапускаються |
 | coredns | 27 | 2.9% | ⚠️ Pending |
 | portfolio | — | — | ⚠️ Pending |
-| **Всего** | **~710** | **~78%** | ❌ |
+| **Всього** | **~710** | **~78%** | ❌ |
 
 ---
 
-## 3. Процесс восстановления (пошагово)
+## 3. Процес відновлення (покроково)
 
-### 3.1 Остановка k3s (Emergency)
+### 3.1 Зупинка k3s (Emergency)
 
 ```powershell
 # SSH с флагом RequestTTY=no (обходит зависание при OOM)
@@ -123,7 +123,7 @@ free -h
 # total: 913Mi, used: 311Mi, available: 441Mi ✓
 ```
 
-### 3.2 Установка GOMEMLIMIT для k3s
+### 3.2 Встановлення GOMEMLIMIT для k3s
 
 ```bash
 # Создание drop-in конфига для systemd
@@ -135,17 +135,17 @@ Environment=GOMEMLIMIT=300MiB
 Environment=GOGC=50
 ```
 
-### 3.3 Проверка конфигурации k3s
+### 3.3 Перевірка конфігурації k3s
 
 ```yaml
 # /etc/rancher/k3s/config.yaml
 tls-san:
   - 13.49.255.149
 disable:
-  - metrics-server    # экономия ~40MB
-  - local-storage     # экономия ~30MB
-  - traefik           # экономия ~96MB
-  - servicelb         # экономия ~20MB
+  - metrics-server    # економія ~40MB
+  - local-storage     # економія ~30MB
+  - traefik           # економія ~96MB
+  - servicelb         # економія ~20MB
 kubelet-arg:
   - system-reserved=memory=256Mi
   - kube-reserved=memory=256Mi
@@ -157,27 +157,27 @@ kubelet-arg:
 ```bash
 sudo systemctl daemon-reload
 sudo systemctl start k3s
-sleep 30  # дать k3s инициализироваться
+sleep 30  # дати k3s ініціалізуватися
 
 # Проверка
 free -h
-# total: 913Mi, used: 510Mi, available: 242Mi ✓ (было 108Mi)
+# total: 913Mi, used: 510Mi, available: 242Mi ✓ (було 108Mi)
 ```
 
-### 3.5 Первая попытка: reboot вместо stop/start
+### 3.5 Перша спроба: reboot замість stop/start
 
 ```bash
-# reboot не сработал — EC2 завис в OOM
+# reboot не спрацював — EC2 завис у OOM
 aws ec2 reboot-instances --instance-ids i-066bd0dac0f09cb74
-# SSH не отвечал > 2 минут — OOM заблокировал систему
+# SSH не відповідав > 2 хвилин — OOM заблокував систему
 ```
 
-**Урок:** При OOM `reboot` может не сработать. Используйте `stop` + `start`.
+**Урок:** При OOM `reboot` може не спрацювати. Використовуйте `stop` + `start`.
 
-### 3.6 Полный stop/start EC2
+### 3.6 Повний stop/start EC2
 
 ```powershell
-# Остановка
+# Зупинка
 aws ec2 stop-instances --instance-ids i-066bd0dac0f09cb74 --region eu-north-1
 # Wait → "stopped"
 
@@ -191,51 +191,51 @@ free -h
 # total: 913Mi, used: 523Mi, available: 232Mi ✓
 ```
 
-### 3.7 Удаление Prometheus из AWS
+### 3.7 Видалення Prometheus з AWS
 
 ```bash
-# Prometheus — CrashLoopBackOff, удаляем
+# Prometheus — CrashLoopBackOff, видаляємо
 kubectl delete deployment prometheus -n observability --force --grace-period=0
 
-# Чистка мусора
+# Чищення сміття
 kubectl delete pod helm-delete-traefik-xxx -n kube-system --force --grace-period=0
 
-# Проверка
+# Перевірка
 kubectl get pods -A
 # cert-manager (3) ✅ Running
 # coredns ✅ Running
 # portfolio ✅ Running
 # node-exporter ✅ Running
-# Prometheus ❌ удалён
+# Prometheus ❌ видалено
 ```
 
-### 3.8 Установка nginx на EC2 (вместо Traefik)
+### 3.8 Встановлення nginx на EC2 (замість Traefik)
 
 ```bash
-# nginx уже был установлен (остался от предыдущих попыток)
-# Проверяем
+# nginx вже був встановлений (залишився від попередніх спроб)
+# Перевіряємо
 sudo nginx -t
 
-# Создаём reverse proxy на portfolio pod
-# Находим IP portfolio
+# Створюємо reverse proxy на portfolio pod
+# Знаходимо IP portfolio
 kubectl get pod -l app=portfolio -o jsonpath='{.items[0].status.podIP}'
 # → 10.42.0.157
 ```
 
-**Проблема с конфигом:** Файл, скопированный через SCP с Windows, содержал CRLF (Windows) окончания строк, что ломало nginx. Решение — генерировать конфиг через Python на сервере.
+**Проблема з конфігом:** Файл, скопійований через SCP з Windows, містив CRLF (Windows) закінчення рядків, що ламало nginx. Рішення — генерувати конфіг через Python на сервері.
 
 ```bash
-# Скрипт fix-nginx.py — генерирует корректный конфиг
-# Загружаем на EC2
+# Скрипт fix-nginx.py — генерує коректний конфіг
+# Завантажуємо на EC2
 scp scripts/fix-nginx.py ubuntu@13.49.255.149:/tmp/
 
-# Запускаем
+# Запускаємо
 python3 /tmp/fix-nginx.py
 sudo cp /tmp/p-nginx.conf /etc/nginx/sites-available/portfolio
 sudo nginx -t && sudo systemctl reload nginx
 ```
 
-**Конфиг nginx:**
+**Конфіг nginx:**
 ```nginx
 server {
     listen 80;
@@ -265,57 +265,57 @@ server {
 }
 ```
 
-### 3.9 Настройка TLS (Let's Encrypt сертификат)
+### 3.9 Налаштування TLS (Let's Encrypt сертифікат)
 
-Изначально использовался self-signed сертификат → Cloudflare возвращал 526 (Invalid SSL certificate). Решение — использовать сертификат, выпущенный cert-manager'ом внутри K3s.
+Спочатку використовувався self-signed сертифікат → Cloudflare повертав 526 (Invalid SSL certificate). Рішення — використовувати сертифікат, випущений cert-manager'ом всередині K3s.
 
 ```bash
-# Извлечение Let's Encrypt сертификата из Kubernetes Secret
+# Вилучення Let's Encrypt сертифіката з Kubernetes Secret
 kubectl get secret portfolio-tls -o jsonpath='{.data.tls\.crt}' | base64 -d \
   | sudo tee /etc/nginx/ssl/portfolio.crt > /dev/null
 kubectl get secret portfolio-tls -o jsonpath='{.data.tls\.key}' | base64 -d \
   | sudo tee /etc/nginx/ssl/portfolio.key > /dev/null
 
-# Проверка
+# Перевірка
 sudo openssl x509 -in /etc/nginx/ssl/portfolio.crt -noout -subject -issuer -dates
 # subject=CN = ai-devops.pp.ua
 # issuer=C = US, O = Let's Encrypt
 
-# Перезагрузка nginx
+# Перезавантаження nginx
 sudo nginx -t && sudo systemctl reload nginx
 ```
 
-**Важно:** В Cloudflare Dashboard должен быть режим **SSL/TLS → Full (strict)**, т.к. сертификат от Let's Encrypt.
+**Важливо:** В Cloudflare Dashboard має бути режим **SSL/TLS → Full (strict)**, т.к. сертифікат від Let's Encrypt.
 
-### 3.10 Добавление Security Group правила для порта 443
+### 3.10 Додавання Security Group правила для порту 443
 
-Порт 443 не был открыт в Security Group — добавлено через AWS CLI:
+Порт 443 не був відкритий в Security Group — додано через AWS CLI:
 
 ```powershell
 aws ec2 authorize-security-group-ingress --group-id sg-0cec508510825fb80 `
   --ip-permissions "IpProtocol=tcp,FromPort=443,ToPort=443, ..."
-# Cloudflare CIDRs — все 15 IPv4 диапазонов
+# Cloudflare CIDRs — всі 15 IPv4 діапазонів
 ```
 
 ---
 
-## 4. Мониторинг: AWS → Local Grafana
+## 4. Моніторинг: AWS → Local Grafana
 
-### 4.1 Новая архитектура
+### 4.1 Нова архітектура
 
 ```
 ДО (падало):
-AWS: Prometheus → pod crash → нет метрик
+AWS: Prometheus → pod crash → немає метрик
 SSH tunnel → 9092 → AWS Prometheus:9090
 
-ПОСЛЕ (работает):
-AWS: node-exporter:9100 (hostNetwork, всегда доступен)
+ПІСЛЯ (працює):
+AWS: node-exporter:9100 (hostNetwork, завжди доступний)
 SSH tunnel → 9101 → AWS 172.31.39.148:9100
-Локальный Prometheus → scrape 172.17.0.1:9101/aws-node-exporter
+Локальний Prometheus → scrape 172.17.0.1:9101/aws-node-exporter
 Grafana → dashboard "AWS K3s — System"
 ```
 
-### 4.2 Настройка SSH tunnel на локальном сервере
+### 4.2 Налаштування SSH tunnel на локальному сервері
 
 ```bash
 # На 192.168.100.203:
@@ -331,10 +331,10 @@ curl http://localhost:9101/metrics | head -3
 # → go_gc_duration_seconds... — метрики node-exporter
 ```
 
-### 4.3 Обновление локального Prometheus
+### 4.3 Оновлення локального Prometheus
 
 ```yaml
-# docker/monitoring/prometheus.yml — новый job:
+# docker/monitoring/prometheus.yml — новий job:
   - job_name: aws-node-exporter
     scrape_interval: 60s
     scrape_timeout: 10s
@@ -348,39 +348,39 @@ curl http://localhost:9101/metrics | head -3
 docker compose restart prometheus
 ```
 
-### 4.4 Автоматизация (скрипт aws-tunnel.sh)
+### 4.4 Автоматизація (скрипт aws-tunnel.sh)
 
 ```bash
-# scripts/aws-tunnel.sh — проверяет туннель каждые 5 мин
-# Если туннель упал — перезапускает
-# Запускать через cron на 192.168.100.203
+# scripts/aws-tunnel.sh — перевіряє тунель кожні 5 хв
+# Якщо тунель впав — перезапускає
+# Запускати через cron на 192.168.100.203
 ```
 
 ---
 
-## 5. Результаты
+## 5. Результати
 
-### 5.1 Память
+### 5.1 Пам'ять
 
-| Параметр | До (падение) | После (восстановление) |
+| Параметр | До (падіння) | Після (відновлення) |
 |----------|-------------|----------------------|
 | Total RAM | 913 MiB | 913 MiB |
 | Used | ~848 MiB | ~600 MiB |
 | Available | ~65 MiB | **~200-300 MiB** ✅ |
 | Swap used | 3.0 GiB / 4.0 GiB | 263 MiB / 4.0 GiB |
 
-### 5.2 Компоненты
+### 5.2 Компоненти
 
-| Компонент | До | После |
+| Компонент | До | Після |
 |-----------|----|-------|
 | k3s server | 437 MB | ~335 MB (GOMEMLIMIT) |
 | Ingress | Traefik (96 MB) ❌ | nginx (15 MB) ✅ |
-| Prometheus | 35 MB ❌ | Удалён ✅ |
+| Prometheus | 35 MB ❌ | Видалений ✅ |
 | Метрики | Prometheus на AWS ❌ | node-exporter → SSH tunnel → Local Grafana ✅ |
-| Сертификат | Let's Encrypt (через cert-manager) | Let's Encrypt извлечён в nginx ✅ |
+| Сертифікат | Let's Encrypt (через cert-manager) | Let's Encrypt вилучений в nginx ✅ |
 | Сайт | 521 (Web server is down) | **200 OK** ✅ |
 
-### 5.3 Финальная проверка
+### 5.3 Фінальна перевірка
 
 ```powershell
 # HTTPS через Cloudflare
@@ -391,7 +391,7 @@ curl -sI https://ai-devops.pp.ua/
 curl -s https://ai-devops.pp.ua/health
 # → {"status":"ok","service":"portfolio"}
 
-# Память на EC2
+# Пам'ять на EC2
 ssh ubuntu@13.49.255.149 "free -h"
 # → total: 913Mi, available: 308Mi
 
@@ -405,55 +405,55 @@ kubectl get pods -A | grep -v Completed
 
 ---
 
-## 6. Ключевые выводы и уроки
+## 6. Ключові висновки та уроки
 
-### 6.1 Что пошло не так
+### 6.1 Що пішло не так
 
-1. **K3s + t3.micro = риск OOM.** 1GB RAM недостаточно для полноценного K3s с Traefik и cert-manager.
-2. **Traefik не нужен на t3.micro.** nginx как systemd сервис потребляет в 6 раз меньше памяти.
-3. **Prometheus на AWS — избыточен.** Метрики можно получать через SSH tunnel + локальную Grafana.
-4. **Cloudflare TLS Full (strict) требует валидного origin-сертификата.** Self-signed не проходит.
+1. **K3s + t3.micro = ризик OOM.** 1GB RAM недостатньо для повноцінного K3s з Traefik та cert-manager.
+2. **Traefik не потрібен на t3.micro.** nginx як systemd сервіс споживає в 6 разів менше пам'яті.
+3. **Prometheus на AWS — надлишковий.** Метрики можна отримувати через SSH tunnel + локальну Grafana.
+4. **Cloudflare TLS Full (strict) вимагає валідного origin-сертифіката.** Self-signed не проходить.
 
-### 6.2 Что было сделано правильно
+### 6.2 Що було зроблено правильно
 
-1. **Stop/start вместо reboot** — при OOM reboot может не помочь.
-2. **GOMEMLIMIT для Go-процессов** — ограничивает потребление k3s.
-3. **SQLite backup** — позволил бы восстановиться без потери данных (но не понадобилось).
-4. **cert-manager внутри K3s** — сертификат Let's Encrypt жив, извлечён в nginx.
+1. **Stop/start замість reboot** — при OOM reboot може не допомогти.
+2. **GOMEMLIMIT для Go-процесів** — обмежує споживання k3s.
+3. **SQLite backup** — дозволив би відновитися без втрати даних (але не знадобилося).
+4. **cert-manager всередині K3s** — сертифікат Let's Encrypt живий, вилучений в nginx.
 
-### 6.3 Профилактика
+### 6.3 Профілактика
 
-- **Alerting:** настроить оповещение при available RAM < 150 MiB (в локальном Prometheus)
-- **Мониторинг:** `/var/log/mem-track.csv` каждые 5 минут
-- **План действий при OOM:**
-  1. SSH с `-o RequestTTY=no`
+- **Alerting:** налаштувати сповіщення при available RAM < 150 MiB (в локальному Prometheus)
+- **Моніторинг:** `/var/log/mem-track.csv` кожні 5 хвилин
+- **План дій при OOM:**
+  1. SSH з `-o RequestTTY=no`
   2. `sudo systemctl stop k3s`
-  3. Проверить/увеличить swap
-  4. Проверить конфиг k3s
+  3. Перевірити/збільшити swap
+  4. Перевірити конфіг k3s
   5. `sudo systemctl start k3s`
-  6. Подождать 30 секунд
-  7. Проверить `free -h` и `kubectl get pods`
+  6. Почекати 30 секунд
+  7. Перевірити `free -h` та `kubectl get pods`
 
 ---
 
-## 7. Изменённые файлы
+## 7. Змінені файли
 
-| Файл | Изменение |
+| Файл | Зміна |
 |------|-----------|
-| `docs/incident-2026-06-16-ai-devops-pp-ua-down.md` | Обновлён статус восстановления |
-| `REPARE_PLAN.md` | Создан — план восстановления |
-| `scripts/aws-tunnel.sh` | Обновлён — порт 9101, target на host IP |
-| `docker/monitoring/prometheus.yml` | Обновлён — новый job aws-node-exporter |
-| `scripts/fix-nginx.py` | Создан — генерация nginx конфига |
-| `docs/aws-free-tier-limitations.md` | Создан — ограничения Free Tier |
+| `docs/incident-2026-06-16-ai-devops-pp-ua-down.md` | Оновлено статус відновлення |
+| `REPARE_PLAN.md` | Створено — план відновлення |
+| `scripts/aws-tunnel.sh` | Оновлено — порт 9101, target на host IP |
+| `docker/monitoring/prometheus.yml` | Оновлено — новий job aws-node-exporter |
+| `scripts/fix-nginx.py` | Створено — генерація nginx конфіга |
+| `docs/aws-free-tier-limitations.md` | Створено — обмеження Free Tier |
 
 ---
 
-## 8. Ссылки
+## 8. Посилання
 
-- [`docs/aws-k3s-setup.md`](aws-k3s-setup.md) — полный лог деплоя AWS K3s
-- [`docs/incident-2026-06-16-ai-devops-pp-ua-down.md`](incident-2026-06-16-ai-devops-pp-ua-down.md) — описание инцидента
-- [`docs/aws-free-tier-limitations.md`](aws-free-tier-limitations.md) — ограничения Free Tier
-- [`HOW-TO.md`](../HOW-TO.md) — руководство по эксплуатации
-- [`REPARE_PLAN.md`](../REPARE_PLAN.md) — план восстановления
+- [`docs/aws-k3s-setup.md`](aws-k3s-setup.md) — повний лог деплою AWS K3s
+- [`docs/incident-2026-06-16-ai-devops-pp-ua-down.md`](incident-2026-06-16-ai-devops-pp-ua-down.md) — опис інциденту
+- [`docs/aws-free-tier-limitations.md`](aws-free-tier-limitations.md) — обмеження Free Tier
+- [`HOW-TO.md`](../HOW-TO.md) — керівництво по експлуатації
+- [`REPARE_PLAN.md`](../REPARE_PLAN.md) — план відновлення
 - [`scripts/aws-tunnel.sh`](../scripts/aws-tunnel.sh) — скрипт SSH tunnel

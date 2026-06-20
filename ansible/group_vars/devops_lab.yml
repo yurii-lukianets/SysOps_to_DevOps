@@ -6,6 +6,6 @@ services:
   monitoring:
     dir: "{{ project_base_dir }}/monitoring"
 
-# Grafana admin password (переменная окружения GRAFANA_PASSWORD)
+# Grafana admin password (змінна оточення GRAFANA_PASSWORD)
 grafana_admin_password: "{{ lookup('env', 'GRAFANA_PASSWORD') | default('devops123', true) }}"
 prometheus_port: 9091
